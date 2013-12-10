@@ -13,6 +13,7 @@ public class GravObject {
     public Color color = Color.gray;
     public double mass;
     public double radius;
+    public String name;
     
     public GravObject(Vector _location,double _mass) {
         location = _location;
@@ -34,6 +35,14 @@ public class GravObject {
         velocity = _velocity;
         acceleration = new Vector();
         radius = _radius;
+    }
+    public GravObject(Vector _location, Vector _velocity,double _mass,double _radius,String _name) {
+        location = _location;
+        mass = _mass;
+        velocity = _velocity;
+        acceleration = new Vector();
+        radius = _radius;
+        name = _name;
     }
     @Override
     public String toString(){

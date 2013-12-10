@@ -9,6 +9,10 @@ import java.awt.Color;
 public class GOholder {
 
     public GOholder(GravObject go) {
+        if (go.name != null)
+        {
+            name = go.name;
+        }
         location = go.location;
         radius = go.radius;
         drawColor = go.color;
@@ -16,6 +20,7 @@ public class GOholder {
             isSun = true;
         }
     }
+    public String name;
     public boolean isSun = false;
     public Vector location;
     public double radius;
