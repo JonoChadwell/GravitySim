@@ -25,12 +25,17 @@ public class Camera {
     private Vector lateral = new Vector();
     private Vector horizontal = new Vector();
     private ArrayList<GOholder> suns;
+    private Vector mouse = new Vector(-100,-100,0);
+    private GOholder nearestToMouse;
+    private GravObject following;
 
     public Camera(Vector _location) {
         location = _location;
     }
 
     public void draw(GravObject[] objectList, Graphics g, int x, int y) {
+        if (following != null)
+            location = Vector.difference(new Vector(), following.location);
         precalcDrawing();
         drawList = new GOholder[objectList.length];
         suns = new ArrayList<>();
@@ -48,7 +53,7 @@ public class Camera {
         }
         quickSort(drawList, 0, drawList.length - 1);
         for (GOholder gh : drawList) {
-            if (gh.screenLocation.z > 0) {
+            if (gh.screenLocation.z > 0.001) { //.001 to avoid glitches with following objects and rounding errors
                 calcBasicCoords(gh);
                 if (!isOrtho) {
                     scaleForDistance(gh);
@@ -86,6 +91,22 @@ public class Camera {
                 }
             }
         }
+        //calculate neaest to mouse
+        boolean found = false;
+        double smallestDifference = 100;
+        for (GOholder gh : drawList)
+        {
+            double thisDifference = 
+                    (gh.screenLocation.x + x - mouse.x) * (gh.screenLocation.x + x - mouse.x) + 
+                    (gh.screenLocation.y + y - mouse.y) * (gh.screenLocation.y + y - mouse.y);
+            if (thisDifference < smallestDifference){
+                smallestDifference = thisDifference;
+                found = true;
+                nearestToMouse = gh;
+            }
+        }
+        if (!found)
+            nearestToMouse = null;
     }
 
     private void calcBasicCoords(GOholder gh) {
@@ -148,6 +169,7 @@ public class Camera {
     }
 
     public void drawSunArc(GOholder gh, GOholder s, Graphics g, int x, int y) {
+        //bugged
         double cosScreenAngle = Math.sin(Math.atan2(gh.screenLocation.x - s.screenLocation.x, gh.screenLocation.y - s.screenLocation.y));
         double sinScreenAngle = Math.cos(Math.atan2(gh.screenLocation.x - s.screenLocation.x, gh.screenLocation.y - s.screenLocation.y));
         double cosRealAngle = Vector.dot(Vector.difference(gh.location, s.location), normal) / Vector.abs(Vector.difference(gh.location, s.location)) / Vector.abs(normal);
@@ -174,6 +196,23 @@ public class Camera {
         }
         g.setColor(new Color(s.drawColor.getRed() * 2 / 3, s.drawColor.getBlue() * 2 / 3,0));// s.drawColor.getGreen() * 2 / 3));
         g.fillPolygon(xPoints2, yPoints2, points * 2);
+    }
+    
+    public void setMouseLocation(Vector v){
+        mouse = v;
+    }
+    
+    public GOholder getNearestToMouse()
+    {
+        return nearestToMouse;
+    }
+    
+    public void setFollowing(GravObject go){
+        following = go;
+    }
+    
+    public GravObject getFollowing(){
+        return following;
     }
 }
 

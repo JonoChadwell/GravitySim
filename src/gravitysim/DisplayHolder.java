@@ -23,7 +23,8 @@ public class DisplayHolder extends javax.swing.JFrame implements ActionListener 
         initComponents();
         this.t = new Timer(200, this);
         t.start();
-        jSlider1.setValue(100);
+        jSlider1.setValue(50);
+        jSlider2.setValue(0);
         jSlider3.setValue(100);
     }
 

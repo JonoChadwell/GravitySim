@@ -27,20 +27,23 @@ public class display extends JPanel implements ActionListener {
         this.addKeyListener(ka);
         this.setFocusable(true);
         this.setBackground(Color.black);
-        displayCamera = new Camera(new Vector(-1,0,0));
-        //simController.addRandomRange(1000);
+        displayCamera = new Camera(new Vector(-1, 0, 0));
+        simController.addRandomRange(1500);
+        /*
         simController.sim.addObject(SolarObjects.Sol);
+        SolarObjects.Sol.color = Color.white;
         simController.sim.addObject(SolarObjects.Earth);
         simController.sim.addObject(SolarObjects.Jupiter);
         simController.sim.addObject(SolarObjects.Luna);
         simController.sim.addObject(SolarObjects.Mercury);
         simController.sim.addObject(SolarObjects.Callisto);
-        simController.sim.addObject(SolarObjects.Leda);
+        simController.sim.addObject(SolarObjects.Leda);*/
     }
     public Camera displayCamera;
     public SimulationController simController = new SimulationController();
     public double scrollSpeed = 1;
-    private Vector cameraSpeed = new Vector(0,0,0);
+    private GravObject following;
+    private Vector cameraSpeed = new Vector(0, 0, 0);
     private boolean autoTurn = false;
     private Timer t;
     private int mousex, mousey;
@@ -49,12 +52,12 @@ public class display extends JPanel implements ActionListener {
         @Override
         public void mouseDragged(MouseEvent me) {
             if (mouseDown) {
-                displayCamera.hRot -= (me.getX() - mousex) / 300.0;
-                displayCamera.vRot -= (me.getY() - mousey) / 300.0;
-                if (displayCamera.vRot > Math.PI / 2){
+                displayCamera.hRot += (me.getX() - mousex) / (displayCamera.zoom / 3.0);
+                displayCamera.vRot += (me.getY() - mousey) / (displayCamera.zoom / 3.0);
+                if (displayCamera.vRot > Math.PI / 2) {
                     displayCamera.vRot = Math.PI / 2;
                 }
-                if (displayCamera.vRot < -Math.PI / 2){
+                if (displayCamera.vRot < -Math.PI / 2) {
                     displayCamera.vRot = -Math.PI / 2;
                 }
                 mousex = me.getX();
@@ -69,6 +72,8 @@ public class display extends JPanel implements ActionListener {
 
         @Override
         public void mouseMoved(MouseEvent me) {
+            mousex = me.getX();
+            mousey = me.getY();
             mouseDown = false;
         }
 
@@ -79,8 +84,30 @@ public class display extends JPanel implements ActionListener {
         }
 
         @Override
-        public void mouseWheelMoved(MouseWheelEvent e) {
-            
+        public void mouseWheelMoved(MouseWheelEvent e)
+        {
+            if (e.getWheelRotation() < 0)
+            {
+                displayCamera.zoom *= 1.05;
+            } else {
+                displayCamera.zoom *= .95;
+            }
+            if (displayCamera.zoom < 1000)
+                    displayCamera.zoom = 1000;
+        }
+
+        @Override
+        public void mouseClicked(MouseEvent me) {
+            if (me.getButton() == 2) {
+                if (displayCamera.getFollowing() == null) {
+                    GOholder gh = displayCamera.getNearestToMouse();
+                    if (gh != null) {
+                        displayCamera.setFollowing(gh.go);
+                    }
+                } else {
+                    displayCamera.setFollowing(null);
+                }
+            }
         }
     };
     public KeyAdapter ka = new KeyAdapter() {
@@ -136,10 +163,12 @@ public class display extends JPanel implements ActionListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        displayCamera.draw(simController.sim.getObjects(), g,getWidth() / 2,getHeight() / 2);
+        displayCamera.draw(simController.sim.getObjects(), g, getWidth() / 2, getHeight() / 2);
     }
+
     @Override
     public void actionPerformed(ActionEvent ae) { //main logic
+        displayCamera.setMouseLocation(new Vector(mousex, mousey, 0));
         if (autoTurn) {
             displayCamera.hRot += .003;
         }

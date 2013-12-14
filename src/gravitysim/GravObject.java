@@ -20,14 +20,14 @@ public class GravObject {
         mass = _mass;
         velocity = new Vector();
         acceleration = new Vector();
-        radius = Math.pow(mass,1.0/3);
+        radius = Math.pow(mass,1.0/3) / 1000;
     }
     public GravObject(Vector _location, Vector _velocity,double _mass) {
         location = _location;
         mass = _mass;
         velocity = _velocity;
         acceleration = new Vector();
-        radius = Math.pow(mass,1.0/3);
+        radius = Math.pow(mass,1.0/3) / 1000;
     }
     public GravObject(Vector _location, Vector _velocity,double _mass,double _radius) {
         location = _location;

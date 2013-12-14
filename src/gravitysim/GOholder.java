@@ -8,7 +8,8 @@ import java.awt.Color;
  */
 public class GOholder {
 
-    public GOholder(GravObject go) {
+    public GOholder(GravObject _go) {
+        go = _go;
         if (go.name != null)
         {
             name = go.name;
@@ -20,6 +21,7 @@ public class GOholder {
             isSun = true;
         }
     }
+    public GravObject go;
     public String name;
     public boolean isSun = false;
     public Vector location;

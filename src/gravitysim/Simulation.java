@@ -43,7 +43,7 @@ public class Simulation {
     private boolean checkIfColliding(GravObject go, GravObject goOther) {
         Vector distance = Vector.difference(go.location, goOther.location);
         double dist = Vector.abs(distance);
-        return dist < (go.radius + goOther.radius) / 2;
+        return dist < (go.radius + goOther.radius);
     }
     
     private GravObject performCollision(GravObject go, GravObject goOther) {
@@ -55,13 +55,7 @@ public class Simulation {
         Vector newMoment = Vector.add(goMoment, goOtherMoment);
         Vector newVelocity = Vector.scale(newMoment, 1 / (go.mass + goOther.mass));
         GravObject rtn;
-        
-        //if (go.mass + goOther.mass < 8){
-            rtn = new GravObject(Vector.add(go.location, diff), newVelocity, go.mass + goOther.mass);
-        //} else {
-        //    rtn = new Sun(Vector.add(go.location, diff), newVelocity, go.mass + goOther.mass);
-        //}
-            
+        rtn = new GravObject(Vector.add(go.location, diff), newVelocity, go.mass + goOther.mass);
         //rtn.drawColor = Color.white; //change color of collided objects
         return rtn;
     }
@@ -75,6 +69,7 @@ public class Simulation {
                     objects.remove(go);
                     objects.remove(goOther);
                     objects.add(performCollision(go, goOther));
+                    
                     collision();
                     return;
                 }

@@ -23,9 +23,9 @@ public class SimulationController implements ActionListener {
     }
 
     public void addRandomRange(int count) {
-        double startVelocity = .08;
-        double avgMass = .1;
-        double range = 10;
+        double startVelocity = .01;
+        double avgMass = 200;
+        double range = 1;
         for (int i = 0; i < count; i++) {
             sim.addObject(new GravObject(new Vector(getRandom(2 * range) - range, getRandom(2 * range) - range, getRandom(2 * range) - range), new Vector(getRandom(startVelocity) - startVelocity / 2, getRandom(startVelocity) - startVelocity / 2, getRandom(startVelocity) - startVelocity / 2), getRandom(avgMass * 2)));
         }
