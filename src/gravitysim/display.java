@@ -27,9 +27,8 @@ public class display extends JPanel implements ActionListener {
         this.addKeyListener(ka);
         this.setFocusable(true);
         this.setBackground(Color.black);
-        displayCamera = new Camera(new Vector(-1, 0, 0));
-        simController.addRandomRange(1500);
-        /*
+        displayCamera = new Camera(new Vector(1, 0, 0));
+        
         simController.sim.addObject(SolarObjects.Sol);
         SolarObjects.Sol.color = Color.white;
         simController.sim.addObject(SolarObjects.Earth);
@@ -37,7 +36,7 @@ public class display extends JPanel implements ActionListener {
         simController.sim.addObject(SolarObjects.Luna);
         simController.sim.addObject(SolarObjects.Mercury);
         simController.sim.addObject(SolarObjects.Callisto);
-        simController.sim.addObject(SolarObjects.Leda);*/
+        simController.sim.addObject(SolarObjects.Leda);
     }
     public Camera displayCamera;
     public SimulationController simController = new SimulationController();
@@ -52,8 +51,8 @@ public class display extends JPanel implements ActionListener {
         @Override
         public void mouseDragged(MouseEvent me) {
             if (mouseDown) {
-                displayCamera.hRot += (me.getX() - mousex) / (displayCamera.zoom / 3.0);
-                displayCamera.vRot += (me.getY() - mousey) / (displayCamera.zoom / 3.0);
+                displayCamera.hRot -= (me.getX() - mousex) / (displayCamera.zoom * 300.0);
+                displayCamera.vRot -= (me.getY() - mousey) / (displayCamera.zoom * 300.0);
                 if (displayCamera.vRot > Math.PI / 2) {
                     displayCamera.vRot = Math.PI / 2;
                 }
@@ -92,22 +91,13 @@ public class display extends JPanel implements ActionListener {
             } else {
                 displayCamera.zoom *= .95;
             }
-            if (displayCamera.zoom < 1000)
-                    displayCamera.zoom = 1000;
+            if (displayCamera.zoom < .5)
+                displayCamera.zoom = .5;
         }
 
         @Override
         public void mouseClicked(MouseEvent me) {
-            if (me.getButton() == 2) {
-                if (displayCamera.getFollowing() == null) {
-                    GOholder gh = displayCamera.getNearestToMouse();
-                    if (gh != null) {
-                        displayCamera.setFollowing(gh.go);
-                    }
-                } else {
-                    displayCamera.setFollowing(null);
-                }
-            }
+
         }
     };
     public KeyAdapter ka = new KeyAdapter() {
@@ -163,12 +153,12 @@ public class display extends JPanel implements ActionListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        displayCamera.draw(simController.sim.getObjects(), g, getWidth() / 2, getHeight() / 2);
+        displayCamera.draw(simController.sim.getObjects(), g, getWidth(), getHeight());
     }
 
     @Override
     public void actionPerformed(ActionEvent ae) { //main logic
-        displayCamera.setMouseLocation(new Vector(mousex, mousey, 0));
+        //displayCamera.setMouseLocation(new Vector(mousex, mousey, 0));
         if (autoTurn) {
             displayCamera.hRot += .003;
         }
