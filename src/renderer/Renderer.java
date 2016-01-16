@@ -7,7 +7,7 @@ import javax.swing.JFrame;
 
 public class Renderer {
    public static void main(String args[]) {
-      String file = "/home/jpchadwe/Documents/CPE471/Program1/bunny.obj";
+      String file = "C:/Users/Jono/Desktop/bunny.obj";
       ObjectFile of = new ObjectFile(file);
       
       List<Vector> points = new ArrayList<>();

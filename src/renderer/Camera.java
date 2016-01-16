@@ -22,7 +22,7 @@ public class Camera {
    public double hRot;
    public double vRot;
    public double zoom = 1000;
-   public double perspectiveDistance = 1.0;
+   public double perspectiveDistance = 1;
    private double screenX;
    private double screenY;
 
@@ -50,7 +50,10 @@ public class Camera {
    public void draw(List<Vector> originalPoints, List<Triangle> faces, Graphics g, int width, int height) {
       this.screenX = width / 2;
       this.screenY = height / 2;
+      
       List<Vector> points = convert(originalPoints);
+      List<Color> colors = calculateLighting(originalPoints, faces);
+      
       double[][] zbuff = new double[width][height];
       for (int i = 0; i < zbuff.length; i++) {
          for (int j = 0; j < zbuff[0].length; j++) {
@@ -62,16 +65,14 @@ public class Camera {
       case FACES:
          for (Triangle t : faces) {
             BoundingBox bb = new BoundingBox(points, t);
+            
             Vector A = points.get(t.a);
             Vector B = points.get(t.b);
             Vector C = points.get(t.c);
             
-            //Calculate Lighting
-            Vector AC = Vector.difference(originalPoints.get(t.a), originalPoints.get(t.c));
-            Vector BC = Vector.difference(originalPoints.get(t.b), originalPoints.get(t.c));
-            Vector normal = Vector.cross(AC, BC);
-            normal = Vector.scale(normal, 1 / Vector.abs(normal));
-            double lighting = Vector.dot(normal, light);
+            Color Ac = colors.get(t.a);
+            Color Bc = colors.get(t.b);
+            Color Cc = colors.get(t.c);
             
             double Area = getTwiceArea(A, B, C.x, C.y);
             
@@ -87,7 +88,10 @@ public class Camera {
                      if (a >= 0 && b >= 0 && c >= 0 && Math.abs(a + b + c - 1) < 0.10) {
                         if (z > 0 && z < zbuff[x][y]) {
                            zbuff[x][y] = z;
-                           g.setColor(getColor(lighting));
+                           double red = Cc.getRed() * a + Ac.getRed() * b + Bc.getRed() * c;
+                           double green = Cc.getGreen() * a + Ac.getGreen() * b + Bc.getGreen() * c;
+                           double blue = Cc.getBlue() * a + Ac.getBlue() * b + Bc.getBlue() * c;
+                           g.setColor(new Color((int) red, (int) green, (int) blue));
                            g.drawLine(x, y, x, y - 1);
                         }
                      }
@@ -114,20 +118,38 @@ public class Camera {
             }
          }
       }
-      
    }
    
-   double maxSeen = 0.001;
-   double minSeen = 0;
-   public Color getColor(double d) {
-      if (d > maxSeen) {
-         maxSeen = d;
+   private static class LightingData {
+      public double val;
+      public int count;
+   }
+   
+   public List<Color> calculateLighting(List<Vector> points, List<Triangle> faces) {
+      List<LightingData> data = new ArrayList<>();
+      for (Vector v : points) {
+         data.add(new LightingData());
       }
-      if (d < minSeen) {
-         minSeen = d;
+      for (Triangle t : faces) {
+         Vector AC = Vector.difference(points.get(t.a), points.get(t.c));
+         Vector BC = Vector.difference(points.get(t.b), points.get(t.c));
+         Vector normal = Vector.cross(AC, BC);
+         normal = Vector.scale(normal, 1 / Vector.abs(normal));
+         double lighting = Vector.dot(normal, light);
+         addData(lighting, data.get(t.a));
+         addData(lighting, data.get(t.b));
+         addData(lighting, data.get(t.c));
       }
-      double val = 255 * (d - minSeen) / (maxSeen - minSeen);
-      return new Color(0, (int) val, (int) val);
+      List<Color> rtn = new ArrayList<>();
+      for (LightingData ld : data) {
+         rtn.add(new Color(0, (int) (255 * (ld.val + 1) / 2), (int) (255 * (ld.val + 1) / 2)));
+      }
+      return rtn;
+   }
+   
+   public void addData(double val, LightingData data) {
+      data.val = (data.val * data.count + val) / (data.count + 1);
+      data.count++;
    }
 
    public List<Vector> convert(List<Vector> vectors) {

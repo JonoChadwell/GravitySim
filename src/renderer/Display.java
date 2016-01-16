@@ -33,11 +33,11 @@ public class Display extends JPanel implements ActionListener {
     }
     
     public Camera displayCamera;
-    public double scrollSpeed = 0.8;
+    public double scrollSpeed = 0.08;
     public List<Vector> points;
     public List<Triangle> faces;
     private Vector cameraSpeed = new Vector(0, 0, 0);
-    private boolean autoTurn = true;
+    private boolean autoTurn = false;
     private Timer t;
     private int mousex, mousey;
     private boolean mouseDown = false;
