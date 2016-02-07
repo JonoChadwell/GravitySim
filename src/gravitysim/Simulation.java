@@ -2,6 +2,8 @@ package gravitysim;
 
 import java.util.ArrayList;
 
+import utils.Vector;
+
 /**
  *
  * @author Jono

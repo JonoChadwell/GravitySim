@@ -1,4 +1,4 @@
-package renderer;
+package utils;
 
 /**
  *
@@ -39,12 +39,14 @@ public class Vector {
         return new Vector(i.x-j.x, i.y-j.y, i.z-j.z);
     }
     
-    public static Vector add(Vector i, Vector j){
-        return new Vector(i.x+j.x, i.y+j.y, i.z+j.z);
-    }
-    
-    public static Vector add(Vector i, Vector j, Vector k){
-        return new Vector(i.x+j.x+k.x, i.y+j.y+k.y, i.z+j.z+k.z);
+    public static Vector add(Vector ... vals) {
+       Vector rtn = new Vector();
+       for (Vector v : vals) {
+          rtn.x += v.x;
+          rtn.y += v.y;
+          rtn.z += v.z;
+       }
+       return rtn;
     }
     
     public static Vector unit(Vector v){

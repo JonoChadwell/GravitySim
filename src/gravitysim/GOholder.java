@@ -2,6 +2,8 @@ package gravitysim;
 
 import java.awt.Color;
 
+import utils.Vector;
+
 /**
  *
  * @author Jono

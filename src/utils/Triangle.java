@@ -1,4 +1,4 @@
-package renderer;
+package utils;
 
 public class Triangle {
    public final int a;

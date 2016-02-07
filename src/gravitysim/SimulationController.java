@@ -3,7 +3,10 @@ package gravitysim;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Random;
+
 import javax.swing.Timer;
+
+import utils.Vector;
 
 /**
  *

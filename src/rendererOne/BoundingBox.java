@@ -1,6 +1,9 @@
-package renderer;
+package rendererOne;
 
 import java.util.List;
+
+import utils.Triangle;
+import utils.Vector;
 
 public class BoundingBox {
    public final int minX;

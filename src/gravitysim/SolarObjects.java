@@ -1,5 +1,7 @@
 package gravitysim;
 
+import utils.Vector;
+
 /**
  *
  * @author Jono

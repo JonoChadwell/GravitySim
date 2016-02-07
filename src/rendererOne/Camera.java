@@ -1,9 +1,13 @@
-package renderer;
+package rendererOne;
 
 import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.List;
+
+import utils.Quaternion;
+import utils.Triangle;
+import utils.Vector;
 
 /**
  *
@@ -13,11 +17,12 @@ public class Camera {
 
    private static enum Mode {
       FACES,
+      TRIANGLES,
       LINES,
       POINTS;
    }
    
-   private Mode mode = Mode.FACES;
+   private Mode mode = Mode.TRIANGLES;
    public Vector location;
    public double hRot;
    public double vRot;
@@ -26,7 +31,7 @@ public class Camera {
    private double screenX;
    private double screenY;
 
-   public Vector light = new Vector(1,0,0);
+   public Vector light = new Vector(0,-1,0);
    
    private Vector normal = new Vector();
    private Vector lateral = new Vector();
@@ -45,6 +50,10 @@ public class Camera {
    
    private double getTwiceArea(Vector a, Vector b, double cx, double cy) {
       return getTwiceArea(a.x, a.y, b.x, b.y, cx, cy);
+   }
+   
+   private double getTwiceArea(Vector a, Vector b, Vector c) {
+      return getTwiceArea(a.x, a.y, b.x, b.y, c.x, c.y);
    }
 
    public void draw(List<Vector> originalPoints, List<Triangle> faces, Graphics g, int width, int height) {
@@ -74,7 +83,7 @@ public class Camera {
             Color Bc = colors.get(t.b);
             Color Cc = colors.get(t.c);
             
-            double Area = getTwiceArea(A, B, C.x, C.y);
+            double Area = getTwiceArea(A, B, C);
             
             if (A.z > 0 && B.z > 0 && C.z > 0) {
                for (int x = Math.max(bb.minX, 0); x <= Math.min(bb.maxX, width - 1); x++) {
@@ -97,6 +106,31 @@ public class Camera {
                      }
                   }
                }
+            }
+         }
+         break;
+         
+      case TRIANGLES:
+         faces.sort((a,b) -> Double.compare(points.get(b.a).z, points.get(a.a).z));
+         for (Triangle t : faces) {
+            Vector A = points.get(t.a);
+            Vector B = points.get(t.b);
+            Vector C = points.get(t.c);
+            
+            Color Ac = colors.get(t.a);
+            Color Bc = colors.get(t.b);
+            Color Cc = colors.get(t.c);
+            
+            double Area = -getTwiceArea(A, B, C);
+            
+            if (A.z > 0.001 && B.z > 0.001 && C.z > 0.001 && Area > 0) {
+               double red = Cc.getRed() * 0.333 + Ac.getRed() * 0.333 + Bc.getRed() * 0.333;
+               double green = Cc.getGreen() * 0.333 + Ac.getGreen() * 0.333 + Bc.getGreen() * 0.333;
+               double blue = Cc.getBlue() * 0.333 + Ac.getBlue() * 0.333 + Bc.getBlue() * 0.333;
+               g.setColor(new Color((int) red, (int) green, (int) blue));
+               int x[] = {(int) A.x, (int) B.x, (int) C.x};
+               int y[] = {(int) A.y, (int) B.y, (int) C.y};
+               g.fillPolygon(x, y, 3);
             }
          }
          break;
@@ -125,6 +159,10 @@ public class Camera {
       public int count;
    }
    
+   final double ambient = 0.2;
+   final double reflective = 0.4;
+   final double refractive = 0.4;
+   
    public List<Color> calculateLighting(List<Vector> points, List<Triangle> faces) {
       List<LightingData> data = new ArrayList<>();
       for (Vector v : points) {
@@ -133,18 +171,28 @@ public class Camera {
       for (Triangle t : faces) {
          Vector AC = Vector.difference(points.get(t.a), points.get(t.c));
          Vector BC = Vector.difference(points.get(t.b), points.get(t.c));
-         Vector normal = Vector.cross(AC, BC);
-         normal = Vector.scale(normal, 1 / Vector.abs(normal));
-         double lighting = Vector.dot(normal, light);
+         Vector normal = Vector.unit(Vector.cross(AC, BC));
+         double refractivePortion = clamp(Vector.dot(normal, light)) * refractive;
+         Vector reflectedLight = Vector.difference(Vector.scale(normal, 2 * Vector.dot(Vector.scale(light, -1), normal)), light);
+         double reflectivePortion = clamp(Vector.dot(this.normal, Vector.unit(reflectedLight))) * reflective;
+         double lighting = refractivePortion + reflectivePortion + ambient;
          addData(lighting, data.get(t.a));
          addData(lighting, data.get(t.b));
          addData(lighting, data.get(t.c));
       }
       List<Color> rtn = new ArrayList<>();
       for (LightingData ld : data) {
-         rtn.add(new Color(0, (int) (255 * (ld.val + 1) / 2), (int) (255 * (ld.val + 1) / 2)));
+         rtn.add(new Color(0, (int) (255 * ld.val), (int) (255 * ld.val)));
       }
       return rtn;
+   }
+   
+   public double clamp(double input) {
+      if (input < 0) {
+         return 0;
+      } else {
+         return input;
+      }
    }
    
    public void addData(double val, LightingData data) {
@@ -191,5 +239,5 @@ public class Camera {
       location = Vector.add(Vector.scale(lateral, amt.x), location);
       location = Vector.add(Vector.scale(normal, amt.y), location);
       location = Vector.add(Vector.scale(horizontal, amt.z), location);
-  }
+   }
 }
