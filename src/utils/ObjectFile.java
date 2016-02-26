@@ -9,6 +9,7 @@ import java.util.Scanner;
 public class ObjectFile {
    
    public List<Vector> verticies = new ArrayList<>();
+   public List<Vector> normals = new ArrayList<>();
    public List<Triangle> triangles = new ArrayList<>();
    
    public ObjectFile(String filename) {
@@ -67,5 +68,32 @@ public class ObjectFile {
                (v.z - min) / (max - min) * 2 - 1));
       }
       verticies = newVerticies;
+   }
+   
+   public void computeNormals() {
+      normals = new ArrayList<>();
+      float[] norBuf = new float[verticies.size() * 3];
+      for (int i = 0; i < norBuf.length; i++) {
+         norBuf[i] = 0.0f;
+      }
+      for (Triangle t : triangles) {
+         Vector a = verticies.get(t.a);
+         Vector b = verticies.get(t.b);
+         Vector c = verticies.get(t.c);
+         
+         Vector normal = Vector.unit(Vector.cross(Vector.difference(a, b), Vector.difference(a, c)));
+         norBuf[t.a + 0] += normal.x;
+         norBuf[t.a + 1] += normal.y;
+         norBuf[t.a + 2] += normal.z;
+         norBuf[t.b + 0] += normal.x;
+         norBuf[t.b + 1] += normal.y;
+         norBuf[t.b + 2] += normal.z;
+         norBuf[t.c + 0] += normal.x;
+         norBuf[t.c + 1] += normal.y;
+         norBuf[t.c + 2] += normal.z;
+      }
+      for (int i = 0; i < norBuf.length; i += 3) {
+         normals.add(Vector.unit(new Vector(norBuf[i + 0], norBuf[i + 1], norBuf[i + 2])));
+      }
    }
 }

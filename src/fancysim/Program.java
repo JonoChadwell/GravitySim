@@ -17,11 +17,17 @@ import static org.lwjgl.opengl.GL41.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Program {
    private int pid = 0;
    private String vShaderName = "";
    private String fShaderName = "";
+   
+   private Map<String, Integer> attributes = new HashMap<>();
+   private Map<String, Integer> uniforms = new HashMap<>();
+   
    
    private static String readFile(String path) {
       try {
@@ -37,8 +43,6 @@ public class Program {
    }
 
    public boolean init() {
-      int rc;
-      
       // Create shader handles
       int VS = glCreateShader(GL_VERTEX_SHADER);
       int FS = glCreateShader(GL_FRAGMENT_SHADER);
@@ -65,48 +69,27 @@ public class Program {
       return true;
    }
    
-/*
-public void bind()
-{
-   glUseProgram(pid);
-}
-
-public void unbind()
-{
-   glUseProgram(0);
-}
-
-public void addAttribute(const string &name)
-{
-   attributes[name] = GLSL::getAttribLocation(pid, name.c_str(), isVerbose());
-}
-
-public void addUniform(const string &name)
-{
-   uniforms[name] = GLSL::getUniformLocation(pid, name.c_str(), isVerbose());
-}
-
-int getAttribute(const string &name) const
-{
-   map<string,GLint>::const_iterator attribute = attributes.find(name.c_str());
-   if(attribute == attributes.end()) {
-      if(isVerbose()) {
-         cout << name << " is not an attribute variable" << endl;
-      }
-      return 0;
+   public void bind() {
+      glUseProgram(pid);
    }
-   return attribute->second;
-}
-
-GLint Program::getUniform(const string &name) const
-{
-   map<string,GLint>::const_iterator uniform = uniforms.find(name.c_str());
-   if(uniform == uniforms.end()) {
-      if(isVerbose()) {
-         cout << name << " is not a uniform variable" << endl;
-      }
-      return 0;
+   
+   public void unbind() {
+      glUseProgram(0);
    }
-   return uniform->second;
-}*/
+
+   public void addAttribute(String name) {
+      attributes.put(name, glGetAttribLocation(pid, name));
+   }
+
+   public void addUniform(String name) {
+      uniforms.put(name, glGetUniformLocation(pid, name));
+   }
+
+   int getAttribute(String name) {
+      return attributes.get(name);
+   }
+
+   int getUniform(String name) {
+      return uniforms.get(name);
+   }
 }

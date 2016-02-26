@@ -17,7 +17,7 @@ out vec4 fragColor;
 
 void main()
 {
-	gl_Position = P * MV * vertPos;
+   gl_Position = P * MV * vertPos;
 	worldPosition = (MV * vertPos).xyz;
 	lightDir = LightPos - worldPosition.xyz;
 	fragNor = (MV * vec4(vertNor, 0.0)).xyz;
