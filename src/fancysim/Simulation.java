@@ -1,6 +1,7 @@
 package fancysim;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 import utils.Vector;
 
@@ -62,21 +63,24 @@ public class Simulation {
         return rtn;
     }
     
+    private GravObject performCollision(Set<GravObject> objs) {
+       GravObject temp = null;
+       for (GravObject obj : objs) {
+          if (temp == null) {
+             temp = obj;
+          } else {
+             temp = performCollision(temp, obj);
+          }
+       }
+       return temp;
+    }
+
     private void collision() {
-        for (int i = 0; i < objects.size() - 1; i++) {
-            for (int j = i + 1; j < objects.size(); j++) {
-                if (checkIfColliding(objects.get(i), objects.get(j))) {
-                    GravObject go = objects.get(i);
-                    GravObject goOther = objects.get(j);
-                    objects.remove(go);
-                    objects.remove(goOther);
-                    objects.add(performCollision(go, goOther));
-                    
-                    collision();
-                    return;
-                }
-            }
-        }
+       Set<Set<GravObject>> allCollisions = CollisionEngine.collide(objects);
+       for (Set<GravObject> collision : allCollisions) {
+          objects.removeAll(collision);
+          objects.add(performCollision(collision));
+       }
     }
     
     public void centerMass() {

@@ -1,6 +1,7 @@
 package gravitysim;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 import utils.Vector;
 
@@ -17,35 +18,33 @@ public class Simulation {
         ticks += part;
         collision();
         for (GravObject go : objects) {
-            calcGravitationalAcceleration(go);
-            go.velocity = Vector.add(go.velocity, Vector.scale(go.acceleration, part));
+           go.acceleration = new Vector();
+        }
+        for (int i = 0; i < objects.size() - 1; i++) {
+           GravObject go = objects.get(i);
+           calcGravitationalAcceleration(go, i + 1);
+           go.velocity = Vector.add(go.velocity, Vector.scale(go.acceleration, part));
         }
         for (GravObject go : objects) {
             go.location = Vector.add(go.location, Vector.scale(go.velocity, part));
         }
     }
-    
-    private void calcGravitationalAcceleration(GravObject go) {
-        go.acceleration = new Vector();
-        for (GravObject goOther : objects) {
-            if (go != goOther) {
-                Vector accel = getGravAccel(go, goOther);
-                go.acceleration = Vector.add(accel, go.acceleration);
-            }
-        }
-    }
-    
+
+   private void calcGravitationalAcceleration(GravObject go, int minIndex) {
+      for (int i = minIndex; i < objects.size(); i++) {
+         GravObject goOther = objects.get(i);
+         Vector accel = getGravAccel(go, goOther);
+         go.acceleration = Vector.add(go.acceleration, accel);
+         accel = getGravAccel(goOther, go);
+         goOther.acceleration = Vector.add(goOther.acceleration, accel);
+      }
+   }
+
     private Vector getGravAccel(GravObject go, GravObject goOther) {
         Vector distance = Vector.difference(go.location, goOther.location);
         double dist = Vector.abs(distance);
         double acceleration = GRAVITY * goOther.mass / (dist * dist);
         return Vector.scale(Vector.unit(distance), -acceleration);
-    }
-    
-    private boolean checkIfColliding(GravObject go, GravObject goOther) {
-        Vector distance = Vector.difference(go.location, goOther.location);
-        double dist = Vector.abs(distance);
-        return dist < (go.radius + goOther.radius);
     }
     
     private GravObject performCollision(GravObject go, GravObject goOther) {
@@ -62,22 +61,25 @@ public class Simulation {
         return rtn;
     }
     
-    private void collision() {
-        for (int i = 0; i < objects.size() - 1; i++) {
-            for (int j = i + 1; j < objects.size(); j++) {
-                if (checkIfColliding(objects.get(i), objects.get(j))) {
-                    GravObject go = objects.get(i);
-                    GravObject goOther = objects.get(j);
-                    objects.remove(go);
-                    objects.remove(goOther);
-                    objects.add(performCollision(go, goOther));
-                    
-                    collision();
-                    return;
-                }
-            }
-        }
-    }
+   private GravObject performCollision(Set<GravObject> objs) {
+      GravObject temp = null;
+      for (GravObject obj : objs) {
+         if (temp == null) {
+            temp = obj;
+         } else {
+            temp = performCollision(temp, obj);
+         }
+      }
+      return temp;
+   }
+
+   private void collision() {
+      Set<Set<GravObject>> allCollisions = CollisionEngine.collide(objects);
+      for (Set<GravObject> collision : allCollisions) {
+         objects.removeAll(collision);
+         objects.add(performCollision(collision));
+      }
+   }
     
     public void centerMass() {
         Vector massLocCenter = new Vector();

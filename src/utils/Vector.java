@@ -39,6 +39,10 @@ public class Vector {
         return new Vector(i.x-j.x, i.y-j.y, i.z-j.z);
     }
     
+    public static double distance(Vector i, Vector j) {
+       return abs(Vector.difference(i,j));
+    }
+    
     public static Vector add(Vector ... vals) {
        Vector rtn = new Vector();
        for (Vector v : vals) {
@@ -49,9 +53,13 @@ public class Vector {
        return rtn;
     }
     
-    public static Vector unit(Vector v){
+    public static Vector unit(Vector v) {
         double abs = abs(v);
         return new Vector(v.x/abs,v.y/abs,v.z/abs);
+    }
+    
+    public static Vector negate(Vector v) {
+       return new Vector(-v.x, -v.y, -v.z);
     }
     
     @Override

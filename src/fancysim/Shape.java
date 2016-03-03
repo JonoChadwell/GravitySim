@@ -52,7 +52,7 @@ public class Shape {
                verticies.add(new Vector(x, y, z));
                line.close();
             } else if (s.startsWith("f")) {
-               Scanner line = new Scanner(s);
+               Scanner line = new Scanner(s.replaceAll("\\/\\/[0-9]*", ""));
                line.next();
                triangles.add(new Triangle(line.nextInt() - 1,
                      line.nextInt() - 1, line.nextInt() - 1));

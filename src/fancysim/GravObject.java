@@ -47,7 +47,11 @@ public class GravObject {
         name = _name;
     }
     @Override
-    public String toString(){
-        return "Location: " + location + "\nvelocity: " + velocity + "\nMass: " + mass + "\nRadius: " + radius;
+    public String toString() {
+       if (name != null) {
+          return name;
+       } else {
+          return "Location: " + location + " velocity: " + velocity + " Mass: " + mass + " Radius: " + radius;
+       }
     }
 }
