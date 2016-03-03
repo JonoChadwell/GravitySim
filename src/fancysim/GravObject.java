@@ -9,6 +9,7 @@ import utils.Vector;
  * @author Jono
  */
 public class GravObject {
+
    public Vector location;
    public Vector velocity;
    public Vector acceleration;
@@ -53,6 +54,10 @@ public class GravObject {
 
    @Override
    public String toString() {
-      return "Location: " + location + "\nvelocity: " + velocity + "\nMass: " + mass + "\nRadius: " + radius;
+      if (name != null) {
+         return name;
+      } else {
+         return "Location: " + location + " velocity: " + velocity + " Mass: " + mass + " Radius: " + radius;
+      }
    }
 }
