@@ -12,17 +12,16 @@ import utils.Vector;
  *
  * @author Jono
  */
-public class SimulationController implements ActionListener {
+public class SimulationController {
 
     public Simulation sim = new Simulation();
     private static Random rn = new Random();
-    private Timer t;
     public boolean paused = false;
     public double tickAmount = 1.0;
 
     public SimulationController() {
-        this.t = new Timer(100, this);
-        t.start();
+        this.addTorusRange(1000);
+        sim.centerMass();
     }
 
     public void addRandomRange(int count) {
@@ -30,19 +29,65 @@ public class SimulationController implements ActionListener {
         double avgMass = 200;
         double range = 1;
         for (int i = 0; i < count; i++) {
-            sim.addObject(new GravObject(new Vector(getRandom(2 * range) - range, getRandom(2 * range) - range, getRandom(2 * range) - range), new Vector(getRandom(startVelocity) - startVelocity / 2, getRandom(startVelocity) - startVelocity / 2, getRandom(startVelocity) - startVelocity / 2), getRandom(avgMass * 2)));
+            sim.addObject(
+                  new GravObject(
+                        new Vector(
+                              getRandom(2 * range) - range,
+                              getRandom(2 * range) - range,
+                              getRandom(2 * range) - range),
+                        new Vector(
+                              getRandom(startVelocity) - startVelocity / 2,
+                              getRandom(startVelocity) - startVelocity / 2,
+                              getRandom(startVelocity) - startVelocity / 2),
+                        getRandom(avgMass * 2)));
         }
         sim.centerMass();
     }
+    
+    public void addTorusRange(int count) {
+       sim.addObject(new GravObject(
+             new Vector(0,0,0),
+             new Vector(0,0,0),
+             100000));
+       
+       double baseVelocity = .007;
+       double velocityDeviation = 0.003;
+       double massDeviation = 100;
+       double baseMass = 200;
+       double torusRadius = 3;
+       double spread = 2;
+       
+       for (int i = 0; i < count - 1; i++) {
+           double angle = getRandom(Math.PI * 2);
+           double phi = getRandom(Math.PI * 2);
+           double dist = getRandom(spread);
+           double mass = getRandom(massDeviation * 2) - massDeviation + baseMass;
+           
+           Vector circularVelocity = Vector.scale(new Vector(Math.cos(angle), 0, -Math.sin(angle)), baseVelocity);
+           Vector deviantVelocity = new Vector(
+                 getRandom(velocityDeviation * 2) - velocityDeviation,
+                 getRandom(velocityDeviation * 2) - velocityDeviation,
+                 getRandom(velocityDeviation * 2) - velocityDeviation);
+           Vector finalVelocity = Vector.add(circularVelocity, deviantVelocity);
+           
+           Vector basePosition = new Vector(Math.sin(angle), 0, Math.cos(angle));
+           Vector angularPosition = Vector.scale(basePosition, torusRadius);
+           Vector phiPosition = Vector.add(Vector.scale(basePosition, Math.cos(phi) * dist), Vector.scale(new Vector(0,1,0), Math.sin(phi) * dist));
+           Vector finalPosition = Vector.add(angularPosition, phiPosition);
+           
+           sim.addObject(new GravObject(
+                 finalPosition,
+                 finalVelocity,
+                 mass));
+       }
+       sim.centerMass();
+   }
 
     private double getRandom(double max) {
         return rn.nextDouble() * max;
     }
 
-    @Override
-    public void actionPerformed(ActionEvent ae) {
-        if (!paused) {
-            sim.tickSimulation(tickAmount);
-        }
+    public void tick() {
+        sim.tickSimulation(tickAmount);
     }
 }

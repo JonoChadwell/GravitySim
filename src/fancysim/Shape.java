@@ -46,9 +46,9 @@ public class Shape {
             if (s.startsWith("v")) {
                Scanner line = new Scanner(s);
                line.next();
+               double x = line.nextDouble();
                double y = line.nextDouble();
                double z = line.nextDouble();
-               double x = line.nextDouble();
                verticies.add(new Vector(x, y, z));
                line.close();
             } else if (s.startsWith("f")) {
@@ -103,21 +103,19 @@ public class Shape {
          Vector b = verticies.get(t.b);
          Vector c = verticies.get(t.c);
 
-         Vector normal = Vector.unit(Vector.cross(Vector.difference(a, b),
-               Vector.difference(a, c)));
-         norBuf[t.a + 0] += normal.x;
-         norBuf[t.a + 1] += normal.y;
-         norBuf[t.a + 2] += normal.z;
-         norBuf[t.b + 0] += normal.x;
-         norBuf[t.b + 1] += normal.y;
-         norBuf[t.b + 2] += normal.z;
-         norBuf[t.c + 0] += normal.x;
-         norBuf[t.c + 1] += normal.y;
-         norBuf[t.c + 2] += normal.z;
+         Vector normal = Vector.unit(Vector.cross(Vector.difference(a, b), Vector.difference(a, c)));
+         norBuf[t.a * 3 + 0] += normal.x;
+         norBuf[t.a * 3 + 1] += normal.y;
+         norBuf[t.a * 3 + 2] += normal.z;
+         norBuf[t.b * 3 + 0] += normal.x;
+         norBuf[t.b * 3 + 1] += normal.y;
+         norBuf[t.b * 3 + 2] += normal.z;
+         norBuf[t.c * 3 + 0] += normal.x;
+         norBuf[t.c * 3 + 1] += normal.y;
+         norBuf[t.c * 3 + 2] += normal.z;
       }
       for (int i = 0; i < norBuf.length; i += 3) {
-         normals.add(Vector.unit(new Vector(norBuf[i + 0], norBuf[i + 1],
-               norBuf[i + 2])));
+         normals.add(Vector.unit(new Vector(norBuf[i + 0], norBuf[i + 1], norBuf[i + 2])));
       }
    }
 

@@ -1,6 +1,7 @@
 package fancysim;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import utils.Vector;
 
@@ -100,8 +101,8 @@ public class Simulation {
         objects.add(go);
     }
     
-    public GravObject[] getObjects(){
-        return objects.toArray(new GravObject[0]);
+    public List<GravObject> getObjects(){
+        return objects;
     }
     public double getTicks(){
         return ticks;

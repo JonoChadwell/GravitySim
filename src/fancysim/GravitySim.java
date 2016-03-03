@@ -11,14 +11,20 @@ import java.nio.FloatBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.*;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 
 import utils.ObjectFile;
+import utils.Vector;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL13.*;
@@ -40,7 +46,17 @@ import static org.lwjgl.opengl.GL41.*;
 public class GravitySim {
 
    private Shape bunny;
+   private Shape sphere;
    private Program prog;
+   private Vector eye = new Vector(0,5,0);
+   private Vector up = new Vector(0,-1,0);
+   private double phi = -1;
+   private double theta = 0.0;
+   
+   private double spinSpeed = 0.001;
+   private double moveSpeed = 0.05;
+   private double phiBound = 1.39626;
+   private double objectScale = 1.0;
 
    private static String readFile(String path) {
       try {
@@ -62,6 +78,12 @@ public class GravitySim {
       bunny.rescale();
       bunny.computeNormals();
       bunny.init();
+      
+      file = "res/sphere.obj";
+      sphere = new Shape(file);
+      sphere.rescale();
+      sphere.computeNormals();
+      sphere.init();
 
       prog = new Program();
       prog.setShaderNames("res/simple_vert.glsl", "res/simple_frag.glsl");
@@ -74,7 +96,7 @@ public class GravitySim {
       prog.addUniform("MatShn");
       prog.addUniform("MatSpc");
       prog.addUniform("LightPos");
-      prog.addUniform("eye");
+      prog.addUniform("EyePos");
       prog.addUniform("LightColor");
       prog.addAttribute("vertPos");
       prog.addAttribute("vertNor");
@@ -83,8 +105,8 @@ public class GravitySim {
 
    private Vector3f scratch = new Vector3f();
 
-   private Vector3f vector(float x, float y, float z) {
-      scratch.set(x, y, z);
+   private Vector3f conv(Vector v) {
+      scratch.set((float) v.x, (float) v.y, (float) v.z);
       return scratch;
    }
 
@@ -92,6 +114,7 @@ public class GravitySim {
    private static final int GREY = 1;
    private static final int BRASS = 2;
    private static final int COPPER = 3;
+   private static final int SUN = 4;
 
    private void setMaterial(int i) {
 
@@ -120,13 +143,93 @@ public class GravitySim {
          glUniform3f(prog.getUniform("MatSpc"), 0.257f, 0.1376f, 0.08601f);
          glUniform1f(prog.getUniform("MatShn"), 12.8f);
          break;
+      case 4: // Sun
+         glUniform3f(prog.getUniform("MatAmb"), 2.0f, 1.8f, 1.5f);
+         glUniform3f(prog.getUniform("MatDif"), 0, 0, 0);
+         glUniform3f(prog.getUniform("MatSpc"), 0, 0, 0);
+         glUniform1f(prog.getUniform("MatShn"), 12.8f);
+      }
+   }
+  
+   private void lookDirection(MatrixStack ms, Vector zaxis) {
+      zaxis = Vector.scale(zaxis, -1);
+      Vector xaxis = Vector.unit(Vector.cross(up, zaxis));
+      Vector yaxis = Vector.unit(Vector.cross(xaxis, zaxis));
+      
+      Matrix4f mat = new Matrix4f();
+      mat.m00 = (float) xaxis.x;
+      mat.m10 = (float) xaxis.y;
+      mat.m20 = (float) xaxis.z;
+      mat.m30 = (float) (-Vector.dot(xaxis, eye));
+      
+      mat.m01 = (float) yaxis.x;
+      mat.m11 = (float) yaxis.y;
+      mat.m21 = (float) yaxis.z;
+      mat.m31 = (float) (-Vector.dot(yaxis, eye));
+      
+      mat.m02 = (float) zaxis.x;
+      mat.m12 = (float) zaxis.y;
+      mat.m22 = (float) zaxis.z;
+      mat.m32 = (float) (-Vector.dot(zaxis, eye));
+      
+      mat.m03 = 0;
+      mat.m13 = 0;
+      mat.m23 = 0;
+      mat.m33 = 1;
+      
+      ms.loadMatrix(mat);
+   }
+   
+   private void updateCameraPosition() {
+      
+      if (Display.isActive() && Mouse.isButtonDown(0)) {
+         theta -= Mouse.getDX() * spinSpeed;
+         phi += Mouse.getDY() * spinSpeed;
+         if (phi > phiBound) {
+            phi = phiBound;
+         } else if (phi < -phiBound) {
+            phi = -phiBound;
+         }
+         Mouse.setCursorPosition(Display.getWidth() / 2, Display.getHeight() / 2);
+         Mouse.setGrabbed(true);
+         
+      } else {
+         Mouse.setGrabbed(false);
+      }
+      
+      double x = Math.cos(phi) * Math.cos(theta);
+      double y = Math.sin(phi);
+      double z = Math.cos(phi) * Math.cos(Math.PI / 2 - theta);
+      
+      Vector zaxis = new Vector(x,y,z);
+      Vector xaxis = Vector.unit(Vector.cross(up, zaxis));
+      Vector yaxis = Vector.unit(Vector.cross(xaxis, zaxis));
+      
+      if (Keyboard.isKeyDown(Keyboard.KEY_W)) {
+         eye = Vector.add(eye, Vector.scale(zaxis, moveSpeed));
+      }
+      if (Keyboard.isKeyDown(Keyboard.KEY_S)) {
+         eye = Vector.add(eye, Vector.scale(zaxis, -moveSpeed));
+      }
+      if (Keyboard.isKeyDown(Keyboard.KEY_A)) {
+         eye = Vector.add(eye, Vector.scale(xaxis, moveSpeed));
+      }
+      if (Keyboard.isKeyDown(Keyboard.KEY_D)) {
+         eye = Vector.add(eye, Vector.scale(xaxis, -moveSpeed));
+      }
+      if (Keyboard.isKeyDown(Keyboard.KEY_SPACE)) {
+         eye = Vector.add(eye, Vector.scale(yaxis, moveSpeed));
+      }
+      if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
+         eye = Vector.add(eye, Vector.scale(yaxis, -moveSpeed));
       }
    }
 
-   private void render() {
+   private void render(List<GravObject> objs) {
       // Get current frame buffer size.
       int width = Display.getWidth();
       int height = Display.getHeight();
+      GravObject sun = objs.stream().max((a, b) -> Double.compare(a.radius, b.radius)).get();
 
       glViewport(0, 0, width, height);
 
@@ -143,29 +246,47 @@ public class GravitySim {
 
       // Apply perspective projection.
       P.pushMatrix();
-      //P.ortho(-5, 5, -5, 5, -100, 100);
-      P.perspective(45.0f, aspect, 0.01f, 100.0f);
+      P.perspective(50.0f, aspect, 0.01f, 200.0f);
 
       // Apply camera projection
       V.pushMatrix();
       V.loadIdentity();
+      
+      double x = Math.cos(phi) * Math.cos(theta);
+      double y = Math.sin(phi);
+      double z = Math.cos(phi) * Math.cos(Math.PI / 2 - theta);
+      Vector direction = new Vector(x,y,z);
+      lookDirection(V, direction);
 
       prog.bind();
-      
       setMatrix("P", P);
       setMatrix("V", V);
+      
+      glUniform3f(prog.getUniform("LightPos"), (float) sun.location.x, (float) sun.location.y, (float) sun.location.z);
+      glUniform3f(prog.getUniform("LightColor"), 1, 1, 1);
+      glUniform3f(prog.getUniform("EyePos"), (float) eye.x, (float) eye.y, (float) eye.z);
 
       MV.pushMatrix();
+      
+      //draw objects
+      setMaterial(COPPER);
+      for (GravObject obj : objs) {
+         if (obj != sun) {
+            MV.loadIdentity();
+            MV.translate(conv(obj.location));
+            MV.scale((float) (obj.radius * objectScale));
+            setMatrix("MV", MV);
+            sphere.draw(prog);
+         }
+      }
+      
+      //draw sun
       MV.loadIdentity();
-
-      glUniform3f(prog.getUniform("LightPos"), 2, 2, -2);
-      glUniform3f(prog.getUniform("LightColor"), 1, 1, 1);
-      glUniform3f(prog.getUniform("eye"), 0.0f, 0.0f, 100.0f);
-
-      MV.translate(vector(0, 0, 10));
-      setMaterial(BLUE);
+      MV.translate(conv(sun.location));
+      MV.scale((float) (sun.radius * objectScale));
+      setMaterial(SUN);
       setMatrix("MV", MV);
-      bunny.draw(prog);
+      sphere.draw(prog);
       
       MV.popMatrix();
       prog.unbind();
@@ -180,10 +301,23 @@ public class GravitySim {
       MatBuffer.clear();
       mat.topMatrix().store(MatBuffer);
       MatBuffer.flip();
-      glUniformMatrix4(prog.getUniform(name), true, MatBuffer);
+      glUniformMatrix4(prog.getUniform(name), false, MatBuffer);
    }
-
-   public void run() {
+   
+   private Scanner s = new Scanner(System.in);
+   private void handleInput() throws Exception {
+      while (System.in.available() > 0) {
+         Scanner line = new Scanner(s.nextLine());
+         switch (line.next()) {
+         case "sim":
+            sim.tickAmount = line.nextDouble();
+         }
+         line.close();
+      }
+   }
+   
+   private SimulationController sim;
+   public void run() throws Exception {
       try {
          Display.setDisplayMode(new DisplayMode(800, 600));
          Display.setResizable(true);
@@ -197,13 +331,17 @@ public class GravitySim {
       System.out.println("OpenGL version: " + glGetString(GL_VERSION));
       System.out.println("GLSL version: " + glGetString(GL_SHADING_LANGUAGE_VERSION));
       init();
-
+      
+      sim = new SimulationController();
+      sim.tickAmount = 1;
+      
+      
       while (!Display.isCloseRequested()) {
-
-         // render OpenGL here
-         render();
-         
-
+         updateCameraPosition();
+         handleInput();
+         sim.tick();
+         sim.sim.centerMass();
+         render(sim.sim.getObjects());
          Display.sync(60);
          Display.update();
       }
@@ -211,14 +349,7 @@ public class GravitySim {
       Display.destroy();
    }
 
-   public static void main(String[] args) {
+   public static void main(String[] args) throws Exception  {
       new GravitySim().run();
-   }
-   
-   private static void printMat(Matrix4f mat) {
-      System.out.println("[" + mat.m00 + "," + mat.m01 + "," + mat.m02 + "," + mat.m03 + ",");
-      System.out.println(" " + mat.m10 + "," + mat.m11 + "," + mat.m12 + "," + mat.m13 + ",");
-      System.out.println(" " + mat.m20 + "," + mat.m21 + "," + mat.m22 + "," + mat.m23 + ",");
-      System.out.println(" " + mat.m30 + "," + mat.m31 + "," + mat.m32 + "," + mat.m33 + "]");
    }
 }
