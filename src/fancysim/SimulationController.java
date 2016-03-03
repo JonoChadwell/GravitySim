@@ -48,14 +48,14 @@ public class SimulationController {
        sim.addObject(new GravObject(
              new Vector(0,0,0),
              new Vector(0,0,0),
-             100000));
+             500000));
        
-       int count = 2000;
+       int count = 5000;
        double baseVelocity = .007;
        double velocityDeviation = 0.003;
        double massDeviation = 50;
        double baseMass = 100;
-       double torusRadius = 3;
+       double torusRadius = 5;
        double spread = 2;
        
        for (int i = 0; i < count - 1; i++) {

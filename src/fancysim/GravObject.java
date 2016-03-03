@@ -18,6 +18,16 @@ public class GravObject {
    public double radius;
    public String name;
    public double radiusDivisor = 500;
+   
+   public GravObject(GravObject other) {
+      this.location = other.location;
+      this.velocity = other.velocity;
+      this.acceleration = other.acceleration;
+      this.color = other.color;
+      this.mass = other.mass;
+      this.radius = other.radius;
+      this.name = other.name;
+   }
 
    public GravObject(Vector location, double mass) {
       this.location = location;

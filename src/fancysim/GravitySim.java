@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.FutureTask;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
@@ -392,6 +393,10 @@ public class GravitySim {
    }
    
    private SimulationController sim;
+   private long overhead = 0;
+   private long render = 0;
+   private long update = 0;
+   private int count = 0;
    public void run() throws Exception {
       try {
          Display.setDisplayMode(new DisplayMode(800, 600));
@@ -410,14 +415,35 @@ public class GravitySim {
       sim = new SimulationController();
       sim.tickAmount = 1;
       
+      List<GravObject> objects = new ArrayList<>();
+      for (GravObject obj : sim.sim.getObjects()) {
+         objects.add(new GravObject(obj));
+      }
       
+      FutureTask<List<GravObject>> task = new FutureTask<>(() -> {
+         sim.tick();
+         return sim.sim.getObjects();
+      });
+      Thread simulationThread = new Thread(task);
+      simulationThread.start();
       while (!Display.isCloseRequested()) {
+         if (task.isDone()) {
+            objects.clear();
+            for (GravObject obj : task.get()) {
+               objects.add(new GravObject(obj));
+            }
+            task = new FutureTask<>(() -> {
+               sim.tick();
+               sim.sim.centerMass();
+               return sim.sim.getObjects();
+            });
+            simulationThread = new Thread(task);
+            simulationThread.start();
+         }
          updateCameraPosition();
          handleInput();
-         sim.tick();
-         sim.sim.centerMass();
          timePassed = sim.sim.getTicks();
-         render(sim.sim.getObjects());
+         render(objects);
          Display.sync(60);
          Display.update();
       }
