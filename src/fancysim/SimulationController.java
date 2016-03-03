@@ -20,7 +20,7 @@ public class SimulationController {
     public double tickAmount = 1.0;
 
     public SimulationController() {
-        this.addTorusRange(1000);
+        this.addTorusRange();
         sim.centerMass();
     }
 
@@ -44,16 +44,17 @@ public class SimulationController {
         sim.centerMass();
     }
     
-    public void addTorusRange(int count) {
+    public void addTorusRange() {
        sim.addObject(new GravObject(
              new Vector(0,0,0),
              new Vector(0,0,0),
              100000));
        
+       int count = 2000;
        double baseVelocity = .007;
        double velocityDeviation = 0.003;
-       double massDeviation = 100;
-       double baseMass = 200;
+       double massDeviation = 50;
+       double baseMass = 100;
        double torusRadius = 3;
        double spread = 2;
        

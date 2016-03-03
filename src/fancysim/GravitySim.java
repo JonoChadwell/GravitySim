@@ -22,6 +22,7 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.*;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import utils.ObjectFile;
 import utils.Vector;
@@ -45,7 +46,7 @@ import static org.lwjgl.opengl.GL41.*;
  */
 public class GravitySim {
 
-   private Shape bunny;
+   private Shape tail;
    private Shape sphere;
    private Program prog;
    private Vector eye = new Vector(0,5,0);
@@ -57,6 +58,14 @@ public class GravitySim {
    private double moveSpeed = 0.05;
    private double phiBound = 1.39626;
    private double objectScale = 1.0;
+   private double timePassed = 0.0;
+   
+   private static class Tail {
+      public Vector forwards;
+      public Vector toCam;
+      public GravObject source;
+      public double z;
+   }
 
    private static String readFile(String path) {
       try {
@@ -69,15 +78,18 @@ public class GravitySim {
    private void init() {
       glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
       glEnable(GL_DEPTH_TEST);
+      
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
       String vertex = readFile("res/simple_vert.glsl");
       String fragment = readFile("res/simple_frag.glsl");
 
-      String file = "res/bunny.obj";
-      bunny = new Shape(file);
-      bunny.rescale();
-      bunny.computeNormals();
-      bunny.init();
+      String file = "res/tail.obj";
+      tail = new Shape(file);
+      tail.rescale();
+      tail.computeNormals();
+      tail.init();
       
       file = "res/sphere.obj";
       sphere = new Shape(file);
@@ -96,8 +108,10 @@ public class GravitySim {
       prog.addUniform("MatShn");
       prog.addUniform("MatSpc");
       prog.addUniform("LightPos");
-      prog.addUniform("EyePos");
+      prog.addUniform("EyePosOrTailPos");
       prog.addUniform("LightColor");
+      prog.addUniform("Opacity");
+      prog.addUniform("Mode");
       prog.addAttribute("vertPos");
       prog.addAttribute("vertNor");
       prog.addAttribute("vertTex");
@@ -108,6 +122,23 @@ public class GravitySim {
    private Vector3f conv(Vector v) {
       scratch.set((float) v.x, (float) v.y, (float) v.z);
       return scratch;
+   }
+   
+   private Vector3f conv(double x, double y, double z) {
+      scratch.set((float) x, (float) y, (float) z);
+      return scratch;
+   }
+
+   
+   
+   private void setOpacity(float f) {
+      glUniform1f(prog.getUniform("Opacity"), f);
+   }
+   
+   private static final int NORMAL = 0;
+   private static final int TAILS = 1;
+   private void setMode(int i) {
+      glUniform1i(prog.getUniform("Mode"), i);
    }
 
    private static final int BLUE = 0;
@@ -126,9 +157,9 @@ public class GravitySim {
          glUniform1f(prog.getUniform("MatShn"), 120.0f);
          break;
       case 1: // flat grey
-         glUniform3f(prog.getUniform("MatAmb"), 0.13f, 0.13f, 0.14f);
-         glUniform3f(prog.getUniform("MatDif"), 0.3f, 0.3f, 0.4f);
-         glUniform3f(prog.getUniform("MatSpc"), 0.3f, 0.3f, 0.4f);
+         glUniform3f(prog.getUniform("MatAmb"), 0,0,0);
+         glUniform3f(prog.getUniform("MatDif"), 0,0,0);
+         glUniform3f(prog.getUniform("MatSpc"), 0,0,0);
          glUniform1f(prog.getUniform("MatShn"), 4.0f);
          break;
       case 2: // brass
@@ -264,12 +295,24 @@ public class GravitySim {
       
       glUniform3f(prog.getUniform("LightPos"), (float) sun.location.x, (float) sun.location.y, (float) sun.location.z);
       glUniform3f(prog.getUniform("LightColor"), 1, 1, 1);
-      glUniform3f(prog.getUniform("EyePos"), (float) eye.x, (float) eye.y, (float) eye.z);
+      glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) eye.x, (float) eye.y, (float) eye.z);
 
       MV.pushMatrix();
       
+      //draw sun
+      setOpacity(1.0f);
+      setMode(NORMAL);
+      MV.loadIdentity();
+      MV.translate(conv(sun.location));
+      MV.scale((float) (sun.radius * objectScale));
+      setMaterial(SUN);
+      setMatrix("MV", MV);
+      sphere.draw(prog);
+      Vector sunPos = mult(MV, sun.location);
+      
       //draw objects
       setMaterial(COPPER);
+      List<Tail> tails = new ArrayList<>();
       for (GravObject obj : objs) {
          if (obj != sun) {
             MV.loadIdentity();
@@ -277,16 +320,48 @@ public class GravitySim {
             MV.scale((float) (obj.radius * objectScale));
             setMatrix("MV", MV);
             sphere.draw(prog);
+            
+            Vector worldPos = mult(MV, obj.location);
+            Tail t = new Tail();
+            t.forwards = Vector.unit(Vector.difference(sunPos, worldPos));
+            t.toCam = Vector.unit(Vector.difference(new Vector(eye.x, eye.y, eye.z), worldPos));
+            t.source = obj;
+            t.z = Vector.distance(obj.location, eye);
+            tails.add(t);
          }
       }
       
-      //draw sun
-      MV.loadIdentity();
-      MV.translate(conv(sun.location));
-      MV.scale((float) (sun.radius * objectScale));
-      setMaterial(SUN);
-      setMatrix("MV", MV);
-      sphere.draw(prog);
+      
+      tails.sort((a,b) -> -Double.compare(a.z, b.z));
+      setMaterial(GREY);
+      setOpacity(0.1f);
+      setMode(TAILS);
+      Vector modelUp = new Vector(0,1,0);
+      for (Tail t : tails) {
+         MV.loadIdentity();
+         MV.translate(conv(t.source.location));
+         MV.scale((float) (t.source.radius * objectScale));
+         double hAngle = Math.atan2(t.forwards.x, t.forwards.z) + Math.PI / 2;
+         double vAngle = -Math.atan2(t.forwards.y, Vector.abs(new Vector(t.forwards.x,t.forwards.z, 0)));
+         Vector desiredUp = Vector.unit(Vector.cross(t.forwards, t.toCam));
+         double LorR = Vector.dot(t.toCam, Vector.cross(Vector.cross(t.forwards, modelUp), t.forwards));
+         double rAngle = Math.acos(Vector.dot(modelUp, desiredUp));
+         if (LorR > 0) {
+            rAngle = -rAngle;
+         }
+            
+         MV.rotate((float) vAngle, conv(Math.sin(hAngle),0,Math.cos(hAngle)));
+         MV.rotate((float) hAngle, conv(0,1,0));
+         MV.rotate((float) rAngle, conv(1,0,0));
+         
+         
+         MV.scale(conv(200, 8, 1));
+         MV.translate(conv(1, 0, 0));
+         
+         setMatrix("MV", MV);
+         glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) t.source.location.x, (float) t.source.location.y, (float) t.source.location.z);
+         tail.draw(prog);
+      }
       
       MV.popMatrix();
       prog.unbind();
@@ -341,12 +416,27 @@ public class GravitySim {
          handleInput();
          sim.tick();
          sim.sim.centerMass();
+         timePassed = sim.sim.getTicks();
          render(sim.sim.getObjects());
          Display.sync(60);
          Display.update();
       }
 
       Display.destroy();
+   }
+   
+   public Vector mult(MatrixStack ms, Vector a) {
+      Vector4f annoying = new Vector4f();
+      annoying.set((float) a.x, (float) a.y, (float) a.z, 1);
+      Matrix4f.transform(ms.topMatrix(), annoying, annoying);
+      return new Vector(annoying.x, annoying.y, annoying.z);
+   }
+   
+   public Vector mult(MatrixStack ms, Vector a, float w) {
+      Vector4f annoying = new Vector4f();
+      annoying.set((float) a.x, (float) a.y, (float) a.z, w);
+      Matrix4f.transform(ms.topMatrix(), annoying, annoying);
+      return new Vector(annoying.x, annoying.y, annoying.z);
    }
 
    public static void main(String[] args) throws Exception  {
