@@ -47,7 +47,7 @@ import static org.lwjgl.opengl.GL41.*;
  *
  * @author Jono
  */
-public class GravitySim {
+public class OpenGLRenderer {
 
    private Shape tail;
    private Shape sphere;
@@ -474,6 +474,6 @@ public class GravitySim {
    }
 
    public static void main(String[] args) throws Exception  {
-      new GravitySim().run();
+      new OpenGLRenderer().run();
    }
 }
