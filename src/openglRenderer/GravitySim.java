@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package fancysim;
+package openglRenderer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,7 +25,9 @@ import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
-import utils.ObjectFile;
+import gravitysim.GravObject;
+import gravitysim.SimulationController;
+import softwareRenderer.ObjectFile;
 import utils.Vector;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
@@ -440,7 +442,7 @@ public class GravitySim {
             }
             task = new FutureTask<>(() -> {
                sim.tick();
-               //sim.sim.centerMass();
+               sim.sim.centerMass();
                return sim.sim.getObjects();
             });
             simulationThread = new Thread(task);

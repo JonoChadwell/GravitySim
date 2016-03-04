@@ -9,6 +9,7 @@ import utils.Vector;
  * @author Jono
  */
 public class GravObject {
+
    public Vector location;
    public Vector velocity;
    public Vector acceleration;
@@ -16,6 +17,7 @@ public class GravObject {
    public double mass;
    public double radius;
    public String name;
+   public double radiusDivisor = 500;
    
    public GravObject(GravObject other) {
       this.location = other.location;
@@ -32,7 +34,7 @@ public class GravObject {
       this.mass = mass;
       this.velocity = new Vector();
       this.acceleration = new Vector();
-      this.radius = Math.pow(mass, 1.0 / 3) / 1000;
+      this.radius = Math.pow(mass, 1.0 / 3) / radiusDivisor;
    }
 
    public GravObject(Vector location, Vector velocity, double mass) {
@@ -40,7 +42,7 @@ public class GravObject {
       this.mass = mass;
       this.velocity = velocity;
       this.acceleration = new Vector();
-      this.radius = Math.pow(mass, 1.0 / 3) / 1000;
+      this.radius = Math.pow(mass, 1.0 / 3) / radiusDivisor;
    }
 
    public GravObject(Vector location, Vector velocity, double mass, double radius) {
@@ -62,6 +64,10 @@ public class GravObject {
 
    @Override
    public String toString() {
-      return "Location: " + location + "\nvelocity: " + velocity + "\nMass: " + mass + "\nRadius: " + radius;
+      if (name != null) {
+         return name;
+      } else {
+         return "Location: " + location + " velocity: " + velocity + " Mass: " + mass + " Radius: " + radius;
+      }
    }
 }

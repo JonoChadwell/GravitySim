@@ -1,8 +1,11 @@
-package gravitysim;
+package softwareRenderer;
+
+import gravitysim.GravObject;
 
 import java.awt.Color;
 import java.awt.Graphics;
 import java.util.ArrayList;
+import java.util.List;
 
 import utils.Vector;
 
@@ -35,14 +38,14 @@ public class Camera {
         location = _location;
     }
 
-    public void draw(GravObject[] objectList, Graphics g, int x, int y) {
+    public void draw(List<GravObject> objectList, Graphics g, int x, int y) {
         if (following != null)
             location = Vector.difference(new Vector(), following.location);
         precalcDrawing();
-        drawList = new GOholder[objectList.length];
+        drawList = new GOholder[objectList.size()];
         suns = new ArrayList<>();
-        for (int i = 0; i < objectList.length; i++) {
-            GOholder h = new GOholder(objectList[i]);
+        for (int i = 0; i < objectList.size(); i++) {
+            GOholder h = new GOholder(objectList.get(i));
             h.location = Vector.add(h.location, location);
             h.screenLocation = new Vector();
             h.screenLocation.z = distance(h.location);

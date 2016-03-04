@@ -1,4 +1,4 @@
-package gravitysim;
+package openglRenderer;
 
 /**
  *

@@ -1,10 +1,13 @@
-package utils;
+package softwareRenderer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+import utils.Triangle;
+import utils.Vector;
 
 public class ObjectFile {
    

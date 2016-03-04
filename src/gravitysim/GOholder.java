@@ -10,8 +10,7 @@ import utils.Vector;
  */
 public class GOholder {
 
-    public GOholder(GravObject _go) {
-        go = _go;
+    public GOholder(GravObject go) {
         if (go.name != null)
         {
             name = go.name;
@@ -23,7 +22,6 @@ public class GOholder {
             isSun = true;
         }
     }
-    public GravObject go;
     public String name;
     public boolean isSun = false;
     public Vector location;

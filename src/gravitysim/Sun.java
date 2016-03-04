@@ -6,11 +6,12 @@ import utils.Vector;
  *
  * @author Jono
  */
-class Sun extends GravObject{
-    public Sun(Vector _location, Vector _velocity,double _mass) {
-        super(_location,_velocity,_mass);
-    }
-    public Sun(Vector _location, Vector _velocity,double _mass,double _radius,String _name) {
-        super(_location,_velocity,_mass,_radius,_name);
-    }
+public class Sun extends GravObject {
+   public Sun(Vector location, Vector velocity, double mass) {
+      super(location, velocity, mass);
+   }
+
+   public Sun(Vector location, Vector velocity, double mass, double radius, String name) {
+      super(location, velocity, mass, radius, name);
+   }
 }

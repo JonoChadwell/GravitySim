@@ -5,7 +5,7 @@ import java.util.List;
 
 import javax.swing.JFrame;
 
-import utils.ObjectFile;
+import softwareRenderer.ObjectFile;
 import utils.Triangle;
 import utils.Vector;
 

@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package gravitysim;
+package softwareRenderer;
 
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
@@ -39,7 +39,7 @@ public class DisplayHolder extends javax.swing.JFrame implements ActionListener 
 
         jToggleButton2 = new javax.swing.JToggleButton();
         jToggleButton3 = new javax.swing.JToggleButton();
-        display2 = new gravitysim.display();
+        display2 = new softwareRenderer.display();
         jToggleButton4 = new javax.swing.JToggleButton();
         jLabel1 = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
@@ -179,6 +179,7 @@ public class DisplayHolder extends javax.swing.JFrame implements ActionListener 
         display2.simController.tickAmount = (jSlider1.getValue() / 100.0) * (jSlider1.getValue() / 100.0);
         display2.displayCamera.objectScale = jSlider2.getValue() + 1;
         display2.scrollSpeed = Math.pow((jSlider3.getValue()+.2)/ 100.0,3);
+        display2.simController.tick();
     }
         
     
@@ -217,7 +218,7 @@ public class DisplayHolder extends javax.swing.JFrame implements ActionListener 
         });
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private gravitysim.display display2;
+    private softwareRenderer.display display2;
     private javax.swing.JButton jButton5;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

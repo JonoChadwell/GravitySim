@@ -1,4 +1,4 @@
-package fancysim;
+package openglRenderer;
 
 import java.util.Stack;
 

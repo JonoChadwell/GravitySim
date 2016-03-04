@@ -1,4 +1,4 @@
-package fancysim;
+package gravitysim;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;

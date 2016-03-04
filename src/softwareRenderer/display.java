@@ -1,4 +1,7 @@
-package gravitysim;
+package softwareRenderer;
+
+import gravitysim.GravObject;
+import gravitysim.SimulationController;
 
 import java.awt.Color;
 import java.awt.Graphics;
