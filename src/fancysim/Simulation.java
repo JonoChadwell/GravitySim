@@ -18,30 +18,60 @@ public class Simulation {
    long ct = 0;
    long gt = 0;
    long pt = 0;
-   int count = 0;
 
    public void tickSimulation(double part) {
+      long ct = 0;
+      long gt = 0;
+      long pt = 0;
       ticks += part;
       ct += time(() -> collision());
       gt += time(() -> {
-         for (GravObject go : objects) {
-            calcGravitationalAcceleration(go);
-            go.velocity = Vector.add(go.velocity, Vector.scale(go.acceleration, part));
-         }
+         applyGravity(part);
       });
       pt += time(() -> {
          for (GravObject go : objects) {
             go.location = Vector.add(go.location, Vector.scale(go.velocity, part));
          }
       });
-      count += 1;
-      System.out.printf("Collision Time: %.3f Gravity Time: %.3f Position Time: %.3f\n", ct / 1000000.0 / count, gt / 1000000.0 / count, pt / 1000000.0 / count);
+      System.out.printf("Collision Time: %.3f Gravity Time: %.3f Position Time: %.3f\n", ct / 1000000.0, gt / 1000000.0, pt / 1000000.0);
    }
 
    private long time(Runnable r) {
       long start = System.nanoTime();
       r.run();
       return System.nanoTime() - start;
+   }
+   
+   private static final int THREADS = 8;
+   @SuppressWarnings("unused")
+   private void applyGravity(double part) {
+      if (THREADS <= 1) {
+         for (GravObject go : objects) {
+            calcGravitationalAcceleration(go);
+            go.velocity = Vector.add(go.velocity, Vector.scale(go.acceleration, part));
+         }
+      } else {
+         List<Thread> gravityThreads = new ArrayList<>();
+         for (int i = 0; i < THREADS; i++) {
+            final int section = i;
+            Thread t = new Thread(() -> {
+               for (int pos = objects.size() * section / THREADS; pos < objects.size() * (section + 1) / THREADS; pos++) {
+                  GravObject go = objects.get(pos);
+                  calcGravitationalAcceleration(go);
+                  go.velocity = Vector.add(go.velocity, Vector.scale(go.acceleration, part));
+               }
+            });
+            t.start();
+            gravityThreads.add(t);
+         }
+         for (Thread t : gravityThreads) {
+            try {
+               t.join();
+            } catch (InterruptedException e) {
+               throw new RuntimeException(e);
+            }
+         }
+      }
    }
 
    private void calcGravitationalAcceleration(GravObject go) {

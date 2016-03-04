@@ -20,7 +20,7 @@ public class SimulationController {
     public double tickAmount = 1.0;
 
     public SimulationController() {
-        this.addTorusRange();
+        addTorusRange();
         sim.centerMass();
     }
 
@@ -45,26 +45,32 @@ public class SimulationController {
     }
     
     public void addTorusRange() {
+       
+       
+       int count = 5000;
+       
+       double sunMass = 500000;
+       double velocityDeviation = 0.006;
+       double massDeviation = 500;
+       double baseMass = 550;
+       double torusRadius = 7;
+       double spread = 6;
+       double baseVelocity = .0000000015 * (count * baseMass + sunMass);
+       
        sim.addObject(new GravObject(
              new Vector(0,0,0),
              new Vector(0,0,0),
-             500000));
-       
-       int count = 5000;
-       double baseVelocity = .007;
-       double velocityDeviation = 0.003;
-       double massDeviation = 50;
-       double baseMass = 100;
-       double torusRadius = 5;
-       double spread = 2;
+             sunMass));
        
        for (int i = 0; i < count - 1; i++) {
            double angle = getRandom(Math.PI * 2);
            double phi = getRandom(Math.PI * 2);
-           double dist = getRandom(spread);
+           double dist = Math.sqrt(getRandom(1)) * spread;
            double mass = getRandom(massDeviation * 2) - massDeviation + baseMass;
            
-           Vector circularVelocity = Vector.scale(new Vector(Math.cos(angle), 0, -Math.sin(angle)), baseVelocity);
+           double targetCircularVelocity = baseVelocity * Math.sqrt(torusRadius + -Math.cos(phi) * dist);
+           
+           Vector circularVelocity = Vector.scale(new Vector(Math.cos(angle), 0, -Math.sin(angle)), targetCircularVelocity);
            Vector deviantVelocity = new Vector(
                  getRandom(velocityDeviation * 2) - velocityDeviation,
                  getRandom(velocityDeviation * 2) - velocityDeviation,

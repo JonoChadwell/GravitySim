@@ -50,9 +50,9 @@ public class GravitySim {
    private Shape tail;
    private Shape sphere;
    private Program prog;
-   private Vector eye = new Vector(0,5,0);
+   private Vector eye = new Vector(-2,20,0);
    private Vector up = new Vector(0,-1,0);
-   private double phi = -1;
+   private double phi = -1.3962;
    private double theta = 0.0;
    
    private double spinSpeed = 0.001;
@@ -106,7 +106,7 @@ public class GravitySim {
       prog.addUniform("V");
       prog.addUniform("MatAmb");
       prog.addUniform("MatDif");
-      prog.addUniform("MatShn");
+      prog.addUniform("MatShnOrScale");
       prog.addUniform("MatSpc");
       prog.addUniform("LightPos");
       prog.addUniform("EyePosOrTailPos");
@@ -155,31 +155,31 @@ public class GravitySim {
          glUniform3f(prog.getUniform("MatAmb"), 0.02f, 0.04f, 0.2f);
          glUniform3f(prog.getUniform("MatDif"), 0.0f, 0.16f, 0.9f);
          glUniform3f(prog.getUniform("MatSpc"), 0.14f, 0.2f, 0.8f);
-         glUniform1f(prog.getUniform("MatShn"), 120.0f);
+         glUniform1f(prog.getUniform("MatShnOrScale"), 120.0f);
          break;
       case 1: // flat grey
          glUniform3f(prog.getUniform("MatAmb"), 0,0,0);
          glUniform3f(prog.getUniform("MatDif"), 0,0,0);
          glUniform3f(prog.getUniform("MatSpc"), 0,0,0);
-         glUniform1f(prog.getUniform("MatShn"), 4.0f);
+         glUniform1f(prog.getUniform("MatShnOrScale"), 4.0f);
          break;
       case 2: // brass
          glUniform3f(prog.getUniform("MatAmb"), 0.3294f, 0.2235f, 0.02745f);
          glUniform3f(prog.getUniform("MatDif"), 0.7804f, 0.5686f, 0.11373f);
          glUniform3f(prog.getUniform("MatSpc"), 0.9922f, 0.941176f, 0.80784f);
-         glUniform1f(prog.getUniform("MatShn"), 27.9f);
+         glUniform1f(prog.getUniform("MatShnOrScale"), 27.9f);
          break;
       case 3: // copper
          glUniform3f(prog.getUniform("MatAmb"), 0.1913f, 0.0735f, 0.0225f);
          glUniform3f(prog.getUniform("MatDif"), 0.7038f, 0.27048f, 0.0828f);
          glUniform3f(prog.getUniform("MatSpc"), 0.257f, 0.1376f, 0.08601f);
-         glUniform1f(prog.getUniform("MatShn"), 12.8f);
+         glUniform1f(prog.getUniform("MatShnOrScale"), 12.8f);
          break;
       case 4: // Sun
          glUniform3f(prog.getUniform("MatAmb"), 2.0f, 1.8f, 1.5f);
          glUniform3f(prog.getUniform("MatDif"), 0, 0, 0);
          glUniform3f(prog.getUniform("MatSpc"), 0, 0, 0);
-         glUniform1f(prog.getUniform("MatShn"), 12.8f);
+         glUniform1f(prog.getUniform("MatShnOrScale"), 12.8f);
       }
    }
   
@@ -262,6 +262,14 @@ public class GravitySim {
       int width = Display.getWidth();
       int height = Display.getHeight();
       GravObject sun = objs.stream().max((a, b) -> Double.compare(a.radius, b.radius)).get();
+      
+//      double dist = 0;
+//      for (GravObject obj : objs) {
+//         if (obj != sun) {
+//            dist += Vector.distance(sun.location, obj.location);
+//         }
+//      }
+//      System.out.println("Average Distance: " + dist / objs.size());
 
       glViewport(0, 0, width, height);
 
@@ -335,7 +343,7 @@ public class GravitySim {
       
       tails.sort((a,b) -> -Double.compare(a.z, b.z));
       setMaterial(GREY);
-      setOpacity(0.1f);
+      
       setMode(TAILS);
       Vector modelUp = new Vector(0,1,0);
       for (Tail t : tails) {
@@ -361,6 +369,8 @@ public class GravitySim {
          
          setMatrix("MV", MV);
          glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) t.source.location.x, (float) t.source.location.y, (float) t.source.location.z);
+         glUniform1f(prog.getUniform("MatShnOrScale"), (float) t.source.radius * 100f);
+         setOpacity((float) Math.sqrt(t.source.radius) / 2f);
          tail.draw(prog);
       }
       
