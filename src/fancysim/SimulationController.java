@@ -45,8 +45,6 @@ public class SimulationController {
     }
     
     public void addTorusRange() {
-       
-       
        int count = 5000;
        
        double sunMass = 500000;

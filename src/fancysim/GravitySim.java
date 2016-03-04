@@ -403,10 +403,6 @@ public class GravitySim {
    }
    
    private SimulationController sim;
-   private long overhead = 0;
-   private long render = 0;
-   private long update = 0;
-   private int count = 0;
    public void run() throws Exception {
       try {
          Display.setDisplayMode(new DisplayMode(800, 600));

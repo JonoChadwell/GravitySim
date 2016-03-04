@@ -43,7 +43,7 @@ public class Shape {
          Scanner scanner = new Scanner(file);
          while (scanner.hasNextLine()) {
             String s = scanner.nextLine();
-            if (s.startsWith("v")) {
+            if (s.startsWith("v ")) {
                Scanner line = new Scanner(s);
                line.next();
                double x = line.nextDouble();
@@ -51,11 +51,13 @@ public class Shape {
                double z = line.nextDouble();
                verticies.add(new Vector(x, y, z));
                line.close();
-            } else if (s.startsWith("f")) {
-               Scanner line = new Scanner(s.replaceAll("\\/\\/[0-9]*", ""));
+            } else if (s.startsWith("f ")) {
+               Scanner line = new Scanner(s.replaceAll("\\/+[0-9]*", ""));
                line.next();
-               triangles.add(new Triangle(line.nextInt() - 1,
-                     line.nextInt() - 1, line.nextInt() - 1));
+               int a = line.nextInt() - 1;
+               int b = line.nextInt() - 1;
+               int c = line.nextInt() - 1;
+               triangles.add(new Triangle(a, b, c));
                line.close();
             }
          }
