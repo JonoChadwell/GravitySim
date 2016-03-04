@@ -317,7 +317,7 @@ public class GravitySim {
       setMaterial(SUN);
       setMatrix("MV", MV);
       sphere.draw(prog);
-      Vector sunPos = mult(MV, sun.location);
+      //Vector sunPos = mult(MV, sun.location);
       
       //draw objects
       setMaterial(COPPER);
@@ -332,7 +332,7 @@ public class GravitySim {
             
             Vector worldPos = mult(MV, obj.location);
             Tail t = new Tail();
-            t.forwards = Vector.unit(Vector.difference(sunPos, worldPos));
+            t.forwards = Vector.unit(Vector.difference(sun.location, worldPos));
             t.toCam = Vector.unit(Vector.difference(new Vector(eye.x, eye.y, eye.z), worldPos));
             t.source = obj;
             t.z = Vector.distance(obj.location, eye);
@@ -444,7 +444,7 @@ public class GravitySim {
             }
             task = new FutureTask<>(() -> {
                sim.tick();
-               sim.sim.centerMass();
+               //sim.sim.centerMass();
                return sim.sim.getObjects();
             });
             simulationThread = new Thread(task);
