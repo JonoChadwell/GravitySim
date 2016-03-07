@@ -139,6 +139,29 @@ public class Simulation {
    public void addObject(GravObject go) {
       objects.add(go);
    }
+   
+   public void addObjects(GravObject[] gos) {
+      for (GravObject obj : gos) {
+         addObject(obj);
+      }
+   }
+   
+   public void convertAxis() {
+      for (GravObject obj : objects) {
+         double y;
+         y = obj.location.y;
+         obj.location.y = obj.location.z;
+         obj.location.z = y;
+         
+         y = obj.velocity.y;
+         obj.velocity.y = obj.velocity.z;
+         obj.velocity.z = y;
+         
+         y = obj.acceleration.y;
+         obj.acceleration.y = obj.acceleration.z;
+         obj.acceleration.z = y;
+      }
+   }
 
    public List<GravObject> getObjects() {
       return objects;

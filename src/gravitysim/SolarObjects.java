@@ -15,5 +15,5 @@ public abstract class SolarObjects {
     public static GravObject IO = new GravObject(new Vector(0,5.209 + 0.00282,0),new Vector(.00754 + .01,0,0),0.014952,1.2177 * Math.pow(10, -5),"IO"); //glitches
     public static GravObject Callisto = new GravObject(new Vector(0,5.209 + 0.012585,0),new Vector(.00754 + .00474,0,0),0.018011,1.6112 * Math.pow(10, -5));
     public static GravObject Leda = new GravObject(new Vector(0,5.209 + 0.075632,0),new Vector(.00754 + .00193,0,0),1.8 * Math.pow(10,-9),6.7 * Math.pow(10, -8));
-    
+    public static GravObject[] objs = {Sol, Mercury, Earth, Luna, Jupiter, IO, Callisto, Leda};
 }

@@ -52,7 +52,7 @@ public class OpenGLRenderer {
    private Shape tail;
    private Shape sphere;
    private Program prog;
-   private Vector eye = new Vector(-2,20,0);
+   private Vector eye = new Vector(-2,2,0);
    private Vector up = new Vector(0,-1,0);
    private double phi = -1.3962;
    private double theta = 0.0;
@@ -288,7 +288,7 @@ public class OpenGLRenderer {
 
       // Apply perspective projection.
       P.pushMatrix();
-      P.perspective(50.0f, aspect, 0.01f, 200.0f);
+      P.perspective(50.0f, aspect, 0.001f, 200.0f);
 
       // Apply camera projection
       V.pushMatrix();
@@ -332,7 +332,7 @@ public class OpenGLRenderer {
             setMatrix("MV", MV);
             sphere.draw(prog);
             
-            Vector worldPos = mult(MV, obj.location);
+            Vector worldPos = obj.location;
             Tail t = new Tail();
             t.forwards = Vector.unit(Vector.difference(sun.location, worldPos));
             t.toCam = Vector.unit(Vector.difference(new Vector(eye.x, eye.y, eye.z), worldPos));
@@ -345,7 +345,6 @@ public class OpenGLRenderer {
       
       tails.sort((a,b) -> -Double.compare(a.z, b.z));
       setMaterial(GREY);
-      
       setMode(TAILS);
       Vector modelUp = new Vector(0,1,0);
       for (Tail t : tails) {
@@ -360,7 +359,7 @@ public class OpenGLRenderer {
          if (LorR > 0) {
             rAngle = -rAngle;
          }
-            
+         
          MV.rotate((float) vAngle, conv(Math.sin(hAngle),0,Math.cos(hAngle)));
          MV.rotate((float) hAngle, conv(0,1,0));
          MV.rotate((float) rAngle, conv(1,0,0));
@@ -372,7 +371,7 @@ public class OpenGLRenderer {
          setMatrix("MV", MV);
          glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) t.source.location.x, (float) t.source.location.y, (float) t.source.location.z);
          glUniform1f(prog.getUniform("MatShnOrScale"), (float) t.source.radius * 100f);
-         setOpacity((float) Math.sqrt(t.source.radius) / 2f);
+         setOpacity((float) t.source.radius * 7f);
          tail.draw(prog);
       }
       
@@ -399,6 +398,13 @@ public class OpenGLRenderer {
          switch (line.next()) {
          case "sim":
             sim.tickAmount = line.nextDouble();
+            break;
+         case "scale":
+            objectScale = line.nextDouble();
+            break;
+         case "speed":
+            moveSpeed = line.nextDouble();
+            break;
          }
          line.close();
       }

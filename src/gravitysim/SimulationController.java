@@ -20,8 +20,11 @@ public class SimulationController {
     public double tickAmount = 1.0;
 
     public SimulationController() {
-        addTorusRange();
-        sim.centerMass();
+       
+//       sim.addObjects(SolarObjects.objs);
+//       sim.convertAxis();
+//       tickAmount = 0.02;
+       addTorusRange();
     }
 
     public void addRandomRange(int count) {
@@ -47,13 +50,15 @@ public class SimulationController {
     public void addTorusRange() {
        int count = 5000;
        
-       double sunMass = 500000;
-       double velocityDeviation = 0.006;
-       double massDeviation = 100;
-       double baseMass = 200;
-       double torusRadius = 2;
-       double spread = 1;
-       double baseVelocity = .015;
+       double sunMass = 332948;
+       double velocityDeviation = 0.002;
+       double massDeviation = 0.8;
+       double baseMass = 1;
+       double torusRadius = 3;
+       double spread = 2;
+       double verticalSpreadFactor = 0.2;
+       double baseVelocity = .006;
+       double spreadPower = 0.3;
        
        sim.addObject(new GravObject(
              new Vector(0,0,0),
@@ -63,7 +68,7 @@ public class SimulationController {
        for (int i = 0; i < count - 1; i++) {
            double angle = getRandom(Math.PI * 2);
            double phi = getRandom(Math.PI * 2);
-           double dist = Math.sqrt(getRandom(1)) * spread;
+           double dist = Math.pow(getRandom(1), spreadPower) * spread;
            double mass = getRandom(massDeviation * 2) - massDeviation + baseMass;
            
            double targetCircularVelocity = baseVelocity * Math.sqrt(torusRadius + -Math.cos(phi) * dist);
@@ -77,7 +82,7 @@ public class SimulationController {
            
            Vector basePosition = new Vector(Math.sin(angle), 0, Math.cos(angle));
            Vector angularPosition = Vector.scale(basePosition, torusRadius);
-           Vector phiPosition = Vector.add(Vector.scale(basePosition, Math.cos(phi) * dist), Vector.scale(new Vector(0,1,0), Math.sin(phi) * dist));
+           Vector phiPosition = Vector.add(Vector.scale(basePosition, Math.cos(phi) * dist), Vector.scale(new Vector(0,verticalSpreadFactor,0), Math.sin(phi) * dist));
            Vector finalPosition = Vector.add(angularPosition, phiPosition);
            
            sim.addObject(new GravObject(
