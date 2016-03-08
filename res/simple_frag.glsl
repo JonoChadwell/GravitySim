@@ -19,11 +19,11 @@ void main()
    if (Mode == 0) {
       vec3 normal = normalize(fragNor);
       vec3 light = normalize(lightDir);
-      vec3 diffuse = max(MatDif * (dot(normal, light)) * LightColor * 5 / distance(LightPos, worldPosition), vec3(0.0));
+      vec3 diffuse = max(MatDif * (dot(normal, light)) * LightColor * 3 / distance(LightPos, worldPosition), vec3(0.0));
       vec3 viewVector = normalize(EyePosOrTailPos - worldPosition);
       vec3 reflectionVector = normalize(-light + 2 * (dot(normal, light)) * normal);
       vec3 specular = max(
-            MatSpc * pow((dot(reflectionVector, viewVector)), MatShnOrScale) * LightColor * 5
+            MatSpc * pow((dot(reflectionVector, viewVector)), MatShnOrScale) * LightColor * 3
                   / (distance(LightPos, worldPosition) + distance(worldPosition, EyePosOrTailPos)),
             vec3(0.0));
       vec3 ambient = max(MatAmb, vec3(0.0));

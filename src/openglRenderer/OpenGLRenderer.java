@@ -70,23 +70,12 @@ public class OpenGLRenderer {
       public double z;
    }
 
-   private static String readFile(String path) {
-      try {
-         return new String(Files.readAllBytes(Paths.get(path)));
-      } catch (IOException ex) {
-         throw new RuntimeException(ex);
-      }
-   }
-
    private void init() {
-      glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
+      glClearColor(0.32f, 0.32f, 0.32f, 1.0f);
       glEnable(GL_DEPTH_TEST);
       
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-      String vertex = readFile("res/simple_vert.glsl");
-      String fragment = readFile("res/simple_frag.glsl");
 
       String file = "res/tail.obj";
       tail = new Shape(file);
@@ -371,7 +360,7 @@ public class OpenGLRenderer {
          setMatrix("MV", MV);
          glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) t.source.location.x, (float) t.source.location.y, (float) t.source.location.z);
          glUniform1f(prog.getUniform("MatShnOrScale"), (float) t.source.radius * 100f);
-         setOpacity((float) t.source.radius * 7f);
+         setOpacity((float) Math.sqrt(t.source.radius) * 0.3f);
          tail.draw(prog);
       }
       
