@@ -17,7 +17,7 @@ public class GravObject {
    public double mass;
    public double radius;
    public String name;
-   public double radiusDivisor = 100;
+   public double radiusDivisor = 200;
    
    public GravObject(GravObject other) {
       this.location = other.location;

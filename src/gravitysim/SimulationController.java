@@ -54,11 +54,11 @@ public class SimulationController {
        double velocityDeviation = 0.002;
        double massDeviation = 0.8;
        double baseMass = 1;
-       double torusRadius = 3;
-       double spread = 2;
+       double torusRadius = 1;
+       double spread = 0.5;
        double verticalSpreadFactor = 0.2;
-       double baseVelocity = .006;
-       double spreadPower = 0.3;
+       double baseVelocity = .0172;
+       double spreadPower = 0.5;
        
        sim.addObject(new GravObject(
              new Vector(0,0,0),
