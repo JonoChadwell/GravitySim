@@ -16,6 +16,11 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.FutureTask;
 
+import mdesl.graphics.SpriteBatch;
+import mdesl.graphics.Texture;
+import mdesl.graphics.glutils.FrameBuffer;
+import mdesl.graphics.glutils.ShaderProgram;
+
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
@@ -28,6 +33,7 @@ import org.lwjgl.util.vector.Vector4f;
 import gravitysim.GravObject;
 import gravitysim.SimulationController;
 import softwareRenderer.ObjectFile;
+import test.Util;
 import utils.Vector;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
@@ -63,6 +69,13 @@ public class OpenGLRenderer {
    private double objectScale = 1.0;
    private double timePassed = 0.0;
    
+   private static final int SCREEN_SIZE = 1024;
+   
+   private FrameBuffer blurTargetA;
+   private FrameBuffer blurTargetB;
+   private SpriteBatch batch;
+   private ShaderProgram blurShader;
+   
    private static class Tail {
       public Vector forwards;
       public Vector toCam;
@@ -70,7 +83,7 @@ public class OpenGLRenderer {
       public double z;
    }
 
-   private void init() {
+   private void init() throws Exception {
       glClearColor(0.32f, 0.32f, 0.32f, 1.0f);
       glEnable(GL_DEPTH_TEST);
       
@@ -107,6 +120,28 @@ public class OpenGLRenderer {
       prog.addAttribute("vertPos");
       prog.addAttribute("vertNor");
       prog.addAttribute("vertTex");
+      
+      blurTargetA = new FrameBuffer(SCREEN_SIZE, SCREEN_SIZE, Texture.LINEAR);
+      blurTargetB = new FrameBuffer(SCREEN_SIZE, SCREEN_SIZE, Texture.LINEAR);
+      
+      //our basic pass-through vertex shader
+      final String VERT = Util.readFile(Util.getResourceAsStream("res/shadertut/lesson5.vert"));
+
+      //our fragment shader, which does the blur in one direction at a time
+      final String FRAG = Util.readFile(Util.getResourceAsStream("res/shadertut/lesson5.frag"));
+
+      //create our shader program
+      blurShader = new ShaderProgram(VERT, FRAG, SpriteBatch.ATTRIBUTES);
+
+      //Good idea to log any warnings if they exist
+      if (blurShader.getLog().length()!=0)
+         System.out.println(blurShader.getLog());
+
+      //always a good idea to set up default uniforms...
+      blurShader.use();
+      blurShader.setUniformf("dir", 0f, 0f); //direction of blur; nil for now
+      blurShader.setUniformf("resolution", SCREEN_SIZE); //size of FBO texture
+      blurShader.setUniformf("radius", 5); //radius of blur
    }
 
    private Vector3f scratch = new Vector3f();
@@ -121,7 +156,6 @@ public class OpenGLRenderer {
       return scratch;
    }
 
-   
    
    private void setOpacity(float f) {
       glUniform1f(prog.getUniform("Opacity"), f);
@@ -250,27 +284,68 @@ public class OpenGLRenderer {
 
    private void render(List<GravObject> objs) {
       // Get current frame buffer size.
+      
+      
+
       int width = Display.getWidth();
       int height = Display.getHeight();
-      GravObject sun = objs.stream().max((a, b) -> Double.compare(a.radius, b.radius)).get();
-      
-//      double dist = 0;
-//      for (GravObject obj : objs) {
-//         if (obj != sun) {
-//            dist += Vector.distance(sun.location, obj.location);
-//         }
-//      }
-//      System.out.println("Average Distance: " + dist / objs.size());
-
       glViewport(0, 0, width, height);
 
       // Clear framebuffer.
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      // Use the matrix stack for Lab 6
-      float aspect = width / (float) height;
+      drawObjectsAndTails(objs);
+   }
+   
+   void renderScene() throws LWJGLException {
+      blurTargetA.begin();
+      glClearColor(0.5f, 0.5f, 0.5f, 1f);
+      glClear(GL_COLOR_BUFFER_BIT);
+      batch.setShader(SpriteBatch.getDefaultShader());
+      batch.resize(blurTargetA.getWidth(), blurTargetA.getHeight());
+      batch.begin();
+     // drawEntities(batch);
+      batch.flush();
+      blurTargetA.end();
+   }
+   
+   void horizontalBlur() throws LWJGLException {
+      batch.setShader(blurShader);
+      blurShader.setUniformf("dir", 1f, 0f);
+      float mouseXAmt = Mouse.getX() / (float)Display.getWidth();
+      blurShader.setUniformf("radius", mouseXAmt * 3f);
+      blurTargetB.begin();
+      batch.draw(blurTargetA, 0, 0);
+      batch.flush();
+      blurTargetB.end();
+   }
+   
+   void verticalBlur() throws LWJGLException {
+      //now we can render to the screen using the vertical blur shader
 
-      // Create the matrix stacks - please leave these alone for now
+      //send the screen-size projection matrix to the blurShader
+      batch.resize(Display.getWidth(), Display.getHeight());
+      
+      //apply the blur only along Y-axis
+      blurShader.setUniformf("dir", 0f, 1f);
+      
+      //update Y-axis blur radius based on mouse
+      float mouseYAmt = (Display.getHeight()-Mouse.getY()-1) / (float)Display.getHeight();
+      blurShader.setUniformf("radius", mouseYAmt * 3f);
+      
+      //draw the horizontally-blurred FBO B to the screen, applying the vertical blur as we go
+      batch.draw(blurTargetB, 0, 0);
+      
+      batch.end();
+   }
+   
+   private void drawObjectsAndTails(List<GravObject> objs) {
+      GravObject sun = objs.stream().max((a, b) -> Double.compare(a.radius, b.radius)).get();
+      int width = Display.getWidth();
+      int height = Display.getHeight();
+      float aspect = width / (float) height;
+      
+      // Create the matrix stacks
       MatrixStack P = new MatrixStack();
       MatrixStack MV = new MatrixStack();
       MatrixStack V = new MatrixStack();
@@ -353,7 +428,6 @@ public class OpenGLRenderer {
          MV.rotate((float) hAngle, conv(0,1,0));
          MV.rotate((float) rAngle, conv(1,0,0));
          
-         
          MV.scale(conv(200, 8, 1));
          MV.translate(conv(1, 0, 0));
          
@@ -402,8 +476,8 @@ public class OpenGLRenderer {
    private SimulationController sim;
    public void run() throws Exception {
       try {
-         Display.setDisplayMode(new DisplayMode(800, 600));
-         Display.setResizable(true);
+         Display.setDisplayMode(new DisplayMode(SCREEN_SIZE, SCREEN_SIZE));
+         Display.setResizable(false);
          Display.create();
       } catch (LWJGLException e) {
          e.printStackTrace();
