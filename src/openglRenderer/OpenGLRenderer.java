@@ -57,6 +57,7 @@ public class OpenGLRenderer {
 
    private Shape tail;
    private Shape sphere;
+   private Shape quad;
    private Program prog;
    private Vector eye = new Vector(-2,2,0);
    private Vector up = new Vector(0,-1,0);
@@ -67,14 +68,12 @@ public class OpenGLRenderer {
    private double moveSpeed = 0.05;
    private double phiBound = 1.39626;
    private double objectScale = 1.0;
-   private double timePassed = 0.0;
    
    private static final int SCREEN_SIZE = 1024;
    
    private FrameBuffer blurTargetA;
    private FrameBuffer blurTargetB;
-   private SpriteBatch batch;
-   private ShaderProgram blurShader;
+   private Program blurProg;
    
    private static class Tail {
       public Vector forwards;
@@ -86,7 +85,7 @@ public class OpenGLRenderer {
    private void init() throws Exception {
       glClearColor(0.32f, 0.32f, 0.32f, 1.0f);
       glEnable(GL_DEPTH_TEST);
-      
+
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -101,6 +100,12 @@ public class OpenGLRenderer {
       sphere.rescale();
       sphere.computeNormals();
       sphere.init();
+      
+      file = "res/quad.obj";
+      quad = new Shape(file);
+      quad.rescale();
+      quad.computeNormals();
+      quad.init();
 
       prog = new Program();
       prog.setShaderNames("res/simple_vert.glsl", "res/simple_frag.glsl");
@@ -131,17 +136,9 @@ public class OpenGLRenderer {
       final String FRAG = Util.readFile(Util.getResourceAsStream("res/shadertut/lesson5.frag"));
 
       //create our shader program
-      blurShader = new ShaderProgram(VERT, FRAG, SpriteBatch.ATTRIBUTES);
-
-      //Good idea to log any warnings if they exist
-      if (blurShader.getLog().length()!=0)
-         System.out.println(blurShader.getLog());
-
-      //always a good idea to set up default uniforms...
-      blurShader.use();
-      blurShader.setUniformf("dir", 0f, 0f); //direction of blur; nil for now
-      blurShader.setUniformf("resolution", SCREEN_SIZE); //size of FBO texture
-      blurShader.setUniformf("radius", 5); //radius of blur
+      blurProg = new Program();
+      blurProg.setShaderNames("res/shadertut/lesson5.vert", "res/shadertut/lesson5.frag");
+      blurProg.init();
    }
 
    private Vector3f scratch = new Vector3f();
@@ -163,6 +160,8 @@ public class OpenGLRenderer {
    
    private static final int NORMAL = 0;
    private static final int TAILS = 1;
+   private static final int ORBITS = 2;
+   
    private void setMode(int i) {
       glUniform1i(prog.getUniform("Mode"), i);
    }
@@ -174,7 +173,6 @@ public class OpenGLRenderer {
    private static final int SUN = 4;
 
    private void setMaterial(int i) {
-
       switch (i) {
       case 0: // shiny blue plastic
          glUniform3f(prog.getUniform("MatAmb"), 0.02f, 0.04f, 0.2f);
@@ -297,23 +295,19 @@ public class OpenGLRenderer {
       drawObjectsAndTails(objs);
    }
    
-   void renderScene() throws LWJGLException {
+   void renderScene(List<GravObject> objs) throws LWJGLException {
       blurTargetA.begin();
       glClearColor(0.5f, 0.5f, 0.5f, 1f);
       glClear(GL_COLOR_BUFFER_BIT);
-      batch.setShader(SpriteBatch.getDefaultShader());
-      batch.resize(blurTargetA.getWidth(), blurTargetA.getHeight());
-      batch.begin();
-     // drawEntities(batch);
-      batch.flush();
+      //drawObjectsAndTails(objs);
       blurTargetA.end();
    }
    
    void horizontalBlur() throws LWJGLException {
-      batch.setShader(blurShader);
-      blurShader.setUniformf("dir", 1f, 0f);
+      batch.setShader(blurProg);
+      blurProg.setUniformf("dir", 1f, 0f);
       float mouseXAmt = Mouse.getX() / (float)Display.getWidth();
-      blurShader.setUniformf("radius", mouseXAmt * 3f);
+      blurProg.setUniformf("radius", mouseXAmt * 3f);
       blurTargetB.begin();
       batch.draw(blurTargetA, 0, 0);
       batch.flush();
@@ -321,21 +315,11 @@ public class OpenGLRenderer {
    }
    
    void verticalBlur() throws LWJGLException {
-      //now we can render to the screen using the vertical blur shader
-
-      //send the screen-size projection matrix to the blurShader
       batch.resize(Display.getWidth(), Display.getHeight());
-      
-      //apply the blur only along Y-axis
-      blurShader.setUniformf("dir", 0f, 1f);
-      
-      //update Y-axis blur radius based on mouse
-      float mouseYAmt = (Display.getHeight()-Mouse.getY()-1) / (float)Display.getHeight();
-      blurShader.setUniformf("radius", mouseYAmt * 3f);
-      
-      //draw the horizontally-blurred FBO B to the screen, applying the vertical blur as we go
+      blurProg.setUniformf("dir", 0f, 1f);
+      float mouseYAmt = (Mouse.getY()) / (float)Display.getHeight();
+      blurProg.setUniformf("radius", mouseYAmt * 3f);
       batch.draw(blurTargetB, 0, 0);
-      
       batch.end();
    }
    
@@ -401,7 +385,7 @@ public class OpenGLRenderer {
             t.forwards = Vector.unit(Vector.difference(sun.location, worldPos));
             t.toCam = Vector.unit(Vector.difference(new Vector(eye.x, eye.y, eye.z), worldPos));
             t.source = obj;
-            t.z = Vector.distance(obj.location, eye);
+            t.z = Vector.dot(Vector.unit(Vector.difference(sun.location, eye)), Vector.unit(Vector.difference(obj.location, sun.location)));
             tails.add(t);
          }
       }
@@ -409,9 +393,9 @@ public class OpenGLRenderer {
       
       tails.sort((a,b) -> -Double.compare(a.z, b.z));
       setMaterial(GREY);
-      setMode(TAILS);
       Vector modelUp = new Vector(0,1,0);
       for (Tail t : tails) {
+         setMode(TAILS);
          MV.loadIdentity();
          MV.translate(conv(t.source.location));
          MV.scale((float) (t.source.radius * objectScale));
@@ -436,14 +420,56 @@ public class OpenGLRenderer {
          glUniform1f(prog.getUniform("MatShnOrScale"), (float) t.source.radius * 100f);
          setOpacity((float) Math.sqrt(t.source.radius) * 0.3f);
          tail.draw(prog);
+         
+         if (t.source.previous != null) {
+            Vector last = null;
+            for (Vector loc : t.source.previous) {
+               if (last == null) {
+                  last = loc;
+               } else {
+                  drawOrbitLine(last, loc, MV);
+                  last = null;
+               }
+            }
+         }
       }
       
       MV.popMatrix();
       prog.unbind();
 
-      // Pop matrix stacks
       P.popMatrix();
       V.popMatrix();
+   }
+   
+   private void drawOrbitLine(Vector from, Vector to, MatrixStack MV) {
+      glDisable(GL_DEPTH_TEST);
+      setMode(ORBITS);
+      Vector modelUp = new Vector(0,1,0);
+      Vector forwards = Vector.unit(Vector.difference(to, from));
+      Vector toCam = Vector.unit(Vector.difference(new Vector(eye.x, eye.y, eye.z), from));
+      MV.loadIdentity();
+      MV.translate(conv(from));
+      MV.scale(1f);
+      double hAngle = Math.atan2(forwards.x, forwards.z) + Math.PI / 2;
+      double vAngle = -Math.atan2(forwards.y, Vector.abs(new Vector(forwards.x,forwards.z, 0)));
+      Vector desiredUp = Vector.unit(Vector.cross(forwards, toCam));
+      double LorR = Vector.dot(toCam, Vector.cross(Vector.cross(forwards, modelUp), forwards));
+      double rAngle = Math.acos(Vector.dot(modelUp, desiredUp));
+      if (LorR > 0) {
+         rAngle = -rAngle;
+      }
+      
+      MV.rotate((float) vAngle, conv(Math.sin(hAngle),0,Math.cos(hAngle)));
+      MV.rotate((float) hAngle, conv(0,1,0));
+      MV.rotate((float) rAngle, conv(1,0,0));
+      
+      MV.scale(conv(Vector.distance(from, to) / 2, 0.002f, 1));
+      MV.translate(conv(1, 0, 0));
+      
+      setMatrix("MV", MV);
+      setOpacity(0.5f);
+      quad.draw(prog);
+      glEnable(GL_DEPTH_TEST);
    }
    
    FloatBuffer MatBuffer = BufferUtils.createFloatBuffer(16);
@@ -455,21 +481,28 @@ public class OpenGLRenderer {
    }
    
    private Scanner s = new Scanner(System.in);
-   private void handleInput() throws Exception {
-      while (System.in.available() > 0) {
-         Scanner line = new Scanner(s.nextLine());
-         switch (line.next()) {
-         case "sim":
-            sim.tickAmount = line.nextDouble();
-            break;
-         case "scale":
-            objectScale = line.nextDouble();
-            break;
-         case "speed":
-            moveSpeed = line.nextDouble();
-            break;
+   private void handleInput() {
+      try {
+         while (System.in.available() > 0) {
+            Scanner line = new Scanner(s.nextLine());
+            switch (line.next()) {
+            case "sim":
+               sim.tickAmount = line.nextDouble() * 0.5;
+               break;
+            case "scale":
+               objectScale = line.nextDouble();
+               break;
+            case "speed":
+               moveSpeed = line.nextDouble() * 0.05;
+               break;
+            case "tails":
+               GravObject.TRACK_LENGTH = line.nextInt();
+            }
+            line.close();
          }
-         line.close();
+      } catch (Exception ex) {
+         //screw proper input validation; swallow everything.
+         System.out.println("Ignoring input exception: " + ex.getClass().getSimpleName());
       }
    }
    
@@ -490,7 +523,6 @@ public class OpenGLRenderer {
       init();
       
       sim = new SimulationController();
-      sim.tickAmount = 1;
       
       List<GravObject> objects = new ArrayList<>();
       for (GravObject obj : sim.sim.getObjects()) {
@@ -519,8 +551,12 @@ public class OpenGLRenderer {
          }
          updateCameraPosition();
          handleInput();
-         timePassed = sim.sim.getTicks();
-         render(objects);
+         
+         renderScene(objects);
+         horizontalBlur();
+         verticalBlur();
+         
+         //render(objects);
          Display.sync(60);
          Display.update();
       }

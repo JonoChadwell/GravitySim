@@ -17,7 +17,7 @@ public class SimulationController {
     public Simulation sim = new Simulation();
     private static Random rn = new Random();
     public boolean paused = false;
-    public double tickAmount = 1.0;
+    public double tickAmount = 0.5;
 
     public SimulationController() {
        
@@ -98,6 +98,7 @@ public class SimulationController {
     }
 
     public void tick() {
-        sim.tickSimulation(tickAmount);
+        if (tickAmount > 0)
+            sim.tickSimulation(tickAmount);
     }
 }

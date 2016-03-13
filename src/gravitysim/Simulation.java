@@ -1,6 +1,7 @@
 package gravitysim;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -21,7 +22,7 @@ public class Simulation {
       applyGravity(part);
 
       for (GravObject go : objects) {
-         go.location = Vector.add(go.location, Vector.scale(go.velocity, part));
+         go.changeLocation(Vector.add(go.location, Vector.scale(go.velocity, part)));
       }
    }
 
@@ -107,6 +108,10 @@ public class Simulation {
          } else {
             temp = performCollision(temp, obj);
          }
+      }
+      LinkedList<Vector> before = objs.stream().max((a,b) -> Double.compare(a.mass, b.mass)).get().previous;
+      if (before != null) {
+         temp.previous = before;
       }
       return temp;
    }

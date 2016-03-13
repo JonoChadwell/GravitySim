@@ -1,6 +1,9 @@
 package gravitysim;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import utils.Vector;
 
@@ -18,6 +21,9 @@ public class GravObject {
    public double radius;
    public String name;
    public double radiusDivisor = 200;
+   public LinkedList<Vector> previous;
+   private static final double TRACK_MASS = 40;
+   public static int TRACK_LENGTH = 40;
    
    public GravObject(GravObject other) {
       this.location = other.location;
@@ -27,6 +33,9 @@ public class GravObject {
       this.mass = other.mass;
       this.radius = other.radius;
       this.name = other.name;
+      if (other.previous != null) {
+         this.previous = new LinkedList<Vector>(other.previous);
+      }
    }
 
    public GravObject(Vector location, double mass) {
@@ -35,6 +44,9 @@ public class GravObject {
       this.velocity = new Vector();
       this.acceleration = new Vector();
       this.radius = Math.pow(mass, 1.0 / 4) / radiusDivisor;
+      if (mass > TRACK_MASS) {
+         previous = new LinkedList<>();
+      }
    }
 
    public GravObject(Vector location, Vector velocity, double mass) {
@@ -43,6 +55,9 @@ public class GravObject {
       this.velocity = velocity;
       this.acceleration = new Vector();
       this.radius = Math.pow(mass, 1.0 / 4) / radiusDivisor;
+      if (mass > TRACK_MASS) {
+         previous = new LinkedList<>();
+      }
    }
 
    public GravObject(Vector location, Vector velocity, double mass, double radius) {
@@ -51,6 +66,9 @@ public class GravObject {
       this.velocity = velocity;
       this.acceleration = new Vector();
       this.radius = radius;
+      if (mass > TRACK_MASS) {
+         previous = new LinkedList<>();
+      }
    }
 
    public GravObject(Vector location, Vector velocity, double mass, double radius, String name) {
@@ -60,6 +78,20 @@ public class GravObject {
       this.acceleration = new Vector();
       this.radius = radius;
       this.name = name;
+      if (mass > TRACK_MASS) {
+         previous = new LinkedList<>();
+      }
+   }
+
+   public void changeLocation(Vector newLocation) {
+      if (previous != null) {
+         previous.add(newLocation);
+         if (previous.size() > TRACK_LENGTH) {
+            previous.removeFirst();
+            previous.removeFirst();
+         }
+      }
+      location = newLocation;
    }
 
    @Override
