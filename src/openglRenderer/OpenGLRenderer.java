@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.FutureTask;
 
-import mdesl.graphics.SpriteBatch;
-import mdesl.graphics.Texture;
-import mdesl.graphics.glutils.ShaderProgram;
-
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
@@ -33,7 +29,6 @@ import org.lwjgl.util.vector.Vector4f;
 import gravitysim.GravObject;
 import gravitysim.SimulationController;
 import softwareRenderer.ObjectFile;
-import test.Util;
 import utils.Vector;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
