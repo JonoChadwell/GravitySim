@@ -28,17 +28,13 @@ void main()
                   / (distance(LightPos, worldPosition) + distance(worldPosition, EyePosOrTailPos)),
             vec3(0.0));
       vec3 ambient = max(MatAmb, vec3(0.0));
-      color = vec4(diffuse + specular + ambient, Opacity);
+      color = vec4((diffuse + specular + ambient) * 0.5, Opacity);
    } else if (Mode == 1) {
       float dist = distance(EyePosOrTailPos, worldPosition);
       float sunDist = distance(LightPos, worldPosition);
       float transparency = min(Opacity * MatShnOrScale / dist / dist / sunDist / 5 - 0.02, Opacity / pow(sunDist, 0.5));
-      if (transparency > 0.01) {
-         color = vec4(0,0,0, transparency);
-      } else {
-         discard;
-      }
+      color = vec4(0,0,0, transparency);
    } else {
-      color = vec4(1,1,1, Opacity);
+      color = vec4(0.5, 0.5, 0.5, Opacity);
    }
 }

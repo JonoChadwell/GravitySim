@@ -63,7 +63,7 @@ public class OpenGLRenderer {
    private double phiBound = 1.39626;
    private double objectScale = 1.0;
    
-   private static final int SCREEN_SIZE = 1024;
+   private static final int SCREEN_SIZE = 2048;
    
    private Program mainProg;
    private Program blurProg;
@@ -80,7 +80,7 @@ public class OpenGLRenderer {
    }
 
    private void init() throws Exception {
-      glClearColor(0.32f, 0.32f, 0.32f, 1.0f);
+      glClearColor(0.16f, 0.16f, 0.16f, 1.0f);
       glEnable(GL_DEPTH_TEST);
 
       glEnable(GL_BLEND);
@@ -315,25 +315,11 @@ public class OpenGLRenderer {
          eye = Vector.add(eye, Vector.scale(yaxis, -moveSpeed));
       }
    }
-
-   private void render(List<GravObject> objs) {
-      // Get current frame buffer size.
-
-      int width = Display.getWidth();
-      int height = Display.getHeight();
-      glViewport(0, 0, width, height);
-
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-      drawObjectsAndTails(objs);
-   }
    
    void renderScene(List<GravObject> objs) throws LWJGLException {
       // Render to our framebuffer
       glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-      int width = Display.getWidth();
-      int height = Display.getHeight();
-      glViewport(0,0,width,height);
+      glViewport(0,0,SCREEN_SIZE,SCREEN_SIZE);
       
       // Clear the screen
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -342,8 +328,9 @@ public class OpenGLRenderer {
 
       // Render to the screen
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // Render on the whole framebuffer, complete from the lower left corner to the upper right
-      glViewport(0,0,width,height);
+      
+      // Render on the whole screen, complete from the lower left corner to the upper right
+      glViewport(0, 0, Display.getWidth(), Display.getHeight());
 
       // Clear the screen
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -373,7 +360,7 @@ public class OpenGLRenderer {
       
       GravObject sun = objs.stream().max((a, b) -> Double.compare(a.radius, b.radius)).get();
       int width = Display.getWidth();
-      int height = Display.getHeight();
+      int height =  Display.getHeight();
       float aspect = width / (float) height;
       
       // Create the matrix stacks
@@ -556,8 +543,8 @@ public class OpenGLRenderer {
    private SimulationController sim;
    public void run() throws Exception {
       try {
-         Display.setDisplayMode(new DisplayMode(SCREEN_SIZE, SCREEN_SIZE));
-         Display.setResizable(false);
+         Display.setDisplayMode(new DisplayMode(1200, 900));
+         Display.setResizable(true);
          Display.create();
       } catch (LWJGLException e) {
          e.printStackTrace();
