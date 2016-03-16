@@ -7,6 +7,7 @@ package openglRenderer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -18,7 +19,6 @@ import java.util.concurrent.FutureTask;
 
 import mdesl.graphics.SpriteBatch;
 import mdesl.graphics.Texture;
-import mdesl.graphics.glutils.FrameBuffer;
 import mdesl.graphics.glutils.ShaderProgram;
 
 import org.lwjgl.BufferUtils;
@@ -58,7 +58,6 @@ public class OpenGLRenderer {
    private Shape tail;
    private Shape sphere;
    private Shape quad;
-   private Program prog;
    private Vector eye = new Vector(-2,2,0);
    private Vector up = new Vector(0,-1,0);
    private double phi = -1.3962;
@@ -71,9 +70,12 @@ public class OpenGLRenderer {
    
    private static final int SCREEN_SIZE = 1024;
    
-   private FrameBuffer blurTargetA;
-   private FrameBuffer blurTargetB;
+   private Program mainProg;
    private Program blurProg;
+   private int FramebufferName;
+   private int renderedTexture;
+   private int depthrenderbuffer;
+   private int quad_vertexbuffer;
    
    private static class Tail {
       public Vector forwards;
@@ -107,38 +109,77 @@ public class OpenGLRenderer {
       quad.computeNormals();
       quad.init();
 
-      prog = new Program();
-      prog.setShaderNames("res/simple_vert.glsl", "res/simple_frag.glsl");
-      prog.init();
-      prog.addUniform("P");
-      prog.addUniform("MV");
-      prog.addUniform("V");
-      prog.addUniform("MatAmb");
-      prog.addUniform("MatDif");
-      prog.addUniform("MatShnOrScale");
-      prog.addUniform("MatSpc");
-      prog.addUniform("LightPos");
-      prog.addUniform("EyePosOrTailPos");
-      prog.addUniform("LightColor");
-      prog.addUniform("Opacity");
-      prog.addUniform("Mode");
-      prog.addAttribute("vertPos");
-      prog.addAttribute("vertNor");
-      prog.addAttribute("vertTex");
-      
-      blurTargetA = new FrameBuffer(SCREEN_SIZE, SCREEN_SIZE, Texture.LINEAR);
-      blurTargetB = new FrameBuffer(SCREEN_SIZE, SCREEN_SIZE, Texture.LINEAR);
-      
-      //our basic pass-through vertex shader
-      final String VERT = Util.readFile(Util.getResourceAsStream("res/shadertut/lesson5.vert"));
+      mainProg = new Program();
+      mainProg.setShaderNames("res/simple_vert.glsl", "res/simple_frag.glsl");
+      mainProg.init();
+      mainProg.addUniform("P");
+      mainProg.addUniform("MV");
+      mainProg.addUniform("V");
+      mainProg.addUniform("MatAmb");
+      mainProg.addUniform("MatDif");
+      mainProg.addUniform("MatShnOrScale");
+      mainProg.addUniform("MatSpc");
+      mainProg.addUniform("LightPos");
+      mainProg.addUniform("EyePosOrTailPos");
+      mainProg.addUniform("LightColor");
+      mainProg.addUniform("Opacity");
+      mainProg.addUniform("Mode");
+      mainProg.addAttribute("vertPos");
+      mainProg.addAttribute("vertNor");
+      mainProg.addAttribute("vertTex");
 
-      //our fragment shader, which does the blur in one direction at a time
-      final String FRAG = Util.readFile(Util.getResourceAsStream("res/shadertut/lesson5.frag"));
-
-      //create our shader program
       blurProg = new Program();
-      blurProg.setShaderNames("res/shadertut/lesson5.vert", "res/shadertut/lesson5.frag");
+      blurProg.setShaderNames("res/blur_vert.glsl", "res/blur_frag.glsl");
       blurProg.init();
+      blurProg.addUniform("tex");
+      blurProg.addAttribute("vertPos");
+      blurProg.addAttribute("vertNor");
+
+      renderedTexture = glGenTextures();
+
+      FramebufferName = glGenFramebuffers();
+      glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+
+      renderedTexture = glGenTextures();
+      
+      // "Bind" the newly created texture : all future texture functions will modify this texture
+      glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+      // Give an empty image to OpenGL ( the last "0" means "empty" )
+      glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, SCREEN_SIZE, SCREEN_SIZE, 0, GL_RGB, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+
+      // Poor filtering
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+      // The depth buffer
+      depthrenderbuffer = glGenRenderbuffers();
+      glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCREEN_SIZE, SCREEN_SIZE);
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+      // Set "renderedTexture" as our colour attachement #0
+      glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+
+      // The fullscreen quad's FBO
+      float g_quad_vertex_buffer_data[] = {
+         -1.0f, -1.0f, 0.0f,
+          1.0f, -1.0f, 0.0f,
+         -1.0f,  1.0f, 0.0f,
+         -1.0f,  1.0f, 0.0f,
+          1.0f, -1.0f, 0.0f,
+          1.0f,  1.0f, 0.0f,
+      };
+
+      quad_vertexbuffer = glGenBuffers();
+      glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+      
+      FloatBuffer positions = BufferUtils.createFloatBuffer(g_quad_vertex_buffer_data.length);
+      positions.put(g_quad_vertex_buffer_data);
+      positions.flip();
+      glBufferData(GL_ARRAY_BUFFER, positions, GL_STATIC_DRAW);
    }
 
    private Vector3f scratch = new Vector3f();
@@ -155,7 +196,7 @@ public class OpenGLRenderer {
 
    
    private void setOpacity(float f) {
-      glUniform1f(prog.getUniform("Opacity"), f);
+      glUniform1f(mainProg.getUniform("Opacity"), f);
    }
    
    private static final int NORMAL = 0;
@@ -163,7 +204,7 @@ public class OpenGLRenderer {
    private static final int ORBITS = 2;
    
    private void setMode(int i) {
-      glUniform1i(prog.getUniform("Mode"), i);
+      glUniform1i(mainProg.getUniform("Mode"), i);
    }
 
    private static final int BLUE = 0;
@@ -175,34 +216,34 @@ public class OpenGLRenderer {
    private void setMaterial(int i) {
       switch (i) {
       case 0: // shiny blue plastic
-         glUniform3f(prog.getUniform("MatAmb"), 0.02f, 0.04f, 0.2f);
-         glUniform3f(prog.getUniform("MatDif"), 0.0f, 0.16f, 0.9f);
-         glUniform3f(prog.getUniform("MatSpc"), 0.14f, 0.2f, 0.8f);
-         glUniform1f(prog.getUniform("MatShnOrScale"), 120.0f);
+         glUniform3f(mainProg.getUniform("MatAmb"), 0.02f, 0.04f, 0.2f);
+         glUniform3f(mainProg.getUniform("MatDif"), 0.0f, 0.16f, 0.9f);
+         glUniform3f(mainProg.getUniform("MatSpc"), 0.14f, 0.2f, 0.8f);
+         glUniform1f(mainProg.getUniform("MatShnOrScale"), 120.0f);
          break;
       case 1: // flat grey
-         glUniform3f(prog.getUniform("MatAmb"), 0,0,0);
-         glUniform3f(prog.getUniform("MatDif"), 0,0,0);
-         glUniform3f(prog.getUniform("MatSpc"), 0,0,0);
-         glUniform1f(prog.getUniform("MatShnOrScale"), 4.0f);
+         glUniform3f(mainProg.getUniform("MatAmb"), 0,0,0);
+         glUniform3f(mainProg.getUniform("MatDif"), 0,0,0);
+         glUniform3f(mainProg.getUniform("MatSpc"), 0,0,0);
+         glUniform1f(mainProg.getUniform("MatShnOrScale"), 4.0f);
          break;
       case 2: // brass
-         glUniform3f(prog.getUniform("MatAmb"), 0.3294f, 0.2235f, 0.02745f);
-         glUniform3f(prog.getUniform("MatDif"), 0.7804f, 0.5686f, 0.11373f);
-         glUniform3f(prog.getUniform("MatSpc"), 0.9922f, 0.941176f, 0.80784f);
-         glUniform1f(prog.getUniform("MatShnOrScale"), 27.9f);
+         glUniform3f(mainProg.getUniform("MatAmb"), 0.3294f, 0.2235f, 0.02745f);
+         glUniform3f(mainProg.getUniform("MatDif"), 0.7804f, 0.5686f, 0.11373f);
+         glUniform3f(mainProg.getUniform("MatSpc"), 0.9922f, 0.941176f, 0.80784f);
+         glUniform1f(mainProg.getUniform("MatShnOrScale"), 27.9f);
          break;
       case 3: // copper
-         glUniform3f(prog.getUniform("MatAmb"), 0.1913f, 0.0735f, 0.0225f);
-         glUniform3f(prog.getUniform("MatDif"), 0.7038f, 0.27048f, 0.0828f);
-         glUniform3f(prog.getUniform("MatSpc"), 0.257f, 0.1376f, 0.08601f);
-         glUniform1f(prog.getUniform("MatShnOrScale"), 12.8f);
+         glUniform3f(mainProg.getUniform("MatAmb"), 0.1913f, 0.0735f, 0.0225f);
+         glUniform3f(mainProg.getUniform("MatDif"), 0.7038f, 0.27048f, 0.0828f);
+         glUniform3f(mainProg.getUniform("MatSpc"), 0.257f, 0.1376f, 0.08601f);
+         glUniform1f(mainProg.getUniform("MatShnOrScale"), 12.8f);
          break;
       case 4: // Sun
-         glUniform3f(prog.getUniform("MatAmb"), 2.0f, 1.8f, 1.5f);
-         glUniform3f(prog.getUniform("MatDif"), 0, 0, 0);
-         glUniform3f(prog.getUniform("MatSpc"), 0, 0, 0);
-         glUniform1f(prog.getUniform("MatShnOrScale"), 12.8f);
+         glUniform3f(mainProg.getUniform("MatAmb"), 2.0f, 1.8f, 1.5f);
+         glUniform3f(mainProg.getUniform("MatDif"), 0, 0, 0);
+         glUniform3f(mainProg.getUniform("MatSpc"), 0, 0, 0);
+         glUniform1f(mainProg.getUniform("MatShnOrScale"), 12.8f);
       }
    }
   
@@ -282,48 +323,59 @@ public class OpenGLRenderer {
 
    private void render(List<GravObject> objs) {
       // Get current frame buffer size.
-      
-      
 
       int width = Display.getWidth();
       int height = Display.getHeight();
       glViewport(0, 0, width, height);
 
-      // Clear framebuffer.
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       drawObjectsAndTails(objs);
    }
    
    void renderScene(List<GravObject> objs) throws LWJGLException {
-      blurTargetA.begin();
-      glClearColor(0.5f, 0.5f, 0.5f, 1f);
-      glClear(GL_COLOR_BUFFER_BIT);
-      //drawObjectsAndTails(objs);
-      blurTargetA.end();
-   }
-   
-   void horizontalBlur() throws LWJGLException {
-      batch.setShader(blurProg);
-      blurProg.setUniformf("dir", 1f, 0f);
-      float mouseXAmt = Mouse.getX() / (float)Display.getWidth();
-      blurProg.setUniformf("radius", mouseXAmt * 3f);
-      blurTargetB.begin();
-      batch.draw(blurTargetA, 0, 0);
-      batch.flush();
-      blurTargetB.end();
-   }
-   
-   void verticalBlur() throws LWJGLException {
-      batch.resize(Display.getWidth(), Display.getHeight());
-      blurProg.setUniformf("dir", 0f, 1f);
-      float mouseYAmt = (Mouse.getY()) / (float)Display.getHeight();
-      blurProg.setUniformf("radius", mouseYAmt * 3f);
-      batch.draw(blurTargetB, 0, 0);
-      batch.end();
+      // Render to our framebuffer
+      glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+      int width = Display.getWidth();
+      int height = Display.getHeight();
+      glViewport(0,0,width,height);
+      
+      // Clear the screen
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+      drawObjectsAndTails(objs);
+
+      // Render to the screen
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // Render on the whole framebuffer, complete from the lower left corner to the upper right
+      glViewport(0,0,width,height);
+
+      // Clear the screen
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+      // Use our shader
+      glUseProgram(blurProg.pid);
+
+      // Bind our texture in Texture Unit 0
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, renderedTexture);
+      // Set our "renderedTexture" sampler to user Texture Unit 0
+      glUniform1i(blurProg.getUniform("tex"), 0);
+
+      // 1rst attribute buffer : vertices
+      glEnableVertexAttribArray(0);
+      glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+      glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+
+      // Draw the triangles !
+      glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+
+      glDisableVertexAttribArray(0);
    }
    
    private void drawObjectsAndTails(List<GravObject> objs) {
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      
       GravObject sun = objs.stream().max((a, b) -> Double.compare(a.radius, b.radius)).get();
       int width = Display.getWidth();
       int height = Display.getHeight();
@@ -348,13 +400,13 @@ public class OpenGLRenderer {
       Vector direction = new Vector(x,y,z);
       lookDirection(V, direction);
 
-      prog.bind();
+      mainProg.bind();
       setMatrix("P", P);
       setMatrix("V", V);
       
-      glUniform3f(prog.getUniform("LightPos"), (float) sun.location.x, (float) sun.location.y, (float) sun.location.z);
-      glUniform3f(prog.getUniform("LightColor"), 1, 1, 1);
-      glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) eye.x, (float) eye.y, (float) eye.z);
+      glUniform3f(mainProg.getUniform("LightPos"), (float) sun.location.x, (float) sun.location.y, (float) sun.location.z);
+      glUniform3f(mainProg.getUniform("LightColor"), 1, 1, 1);
+      glUniform3f(mainProg.getUniform("EyePosOrTailPos"), (float) eye.x, (float) eye.y, (float) eye.z);
 
       MV.pushMatrix();
       
@@ -366,7 +418,7 @@ public class OpenGLRenderer {
       MV.scale((float) (sun.radius * objectScale));
       setMaterial(SUN);
       setMatrix("MV", MV);
-      sphere.draw(prog);
+      sphere.draw(mainProg);
       //Vector sunPos = mult(MV, sun.location);
       
       //draw objects
@@ -378,7 +430,7 @@ public class OpenGLRenderer {
             MV.translate(conv(obj.location));
             MV.scale((float) (obj.radius * objectScale));
             setMatrix("MV", MV);
-            sphere.draw(prog);
+            sphere.draw(mainProg);
             
             Vector worldPos = obj.location;
             Tail t = new Tail();
@@ -416,10 +468,10 @@ public class OpenGLRenderer {
          MV.translate(conv(1, 0, 0));
          
          setMatrix("MV", MV);
-         glUniform3f(prog.getUniform("EyePosOrTailPos"), (float) t.source.location.x, (float) t.source.location.y, (float) t.source.location.z);
-         glUniform1f(prog.getUniform("MatShnOrScale"), (float) t.source.radius * 100f);
+         glUniform3f(mainProg.getUniform("EyePosOrTailPos"), (float) t.source.location.x, (float) t.source.location.y, (float) t.source.location.z);
+         glUniform1f(mainProg.getUniform("MatShnOrScale"), (float) t.source.radius * 100f);
          setOpacity((float) Math.sqrt(t.source.radius) * 0.3f);
-         tail.draw(prog);
+         tail.draw(mainProg);
          
          if (t.source.previous != null) {
             Vector last = null;
@@ -435,7 +487,7 @@ public class OpenGLRenderer {
       }
       
       MV.popMatrix();
-      prog.unbind();
+      mainProg.unbind();
 
       P.popMatrix();
       V.popMatrix();
@@ -468,7 +520,7 @@ public class OpenGLRenderer {
       
       setMatrix("MV", MV);
       setOpacity(0.5f);
-      quad.draw(prog);
+      quad.draw(mainProg);
       glEnable(GL_DEPTH_TEST);
    }
    
@@ -477,7 +529,7 @@ public class OpenGLRenderer {
       MatBuffer.clear();
       mat.topMatrix().store(MatBuffer);
       MatBuffer.flip();
-      glUniformMatrix4(prog.getUniform(name), false, MatBuffer);
+      glUniformMatrix4(mainProg.getUniform(name), false, MatBuffer);
    }
    
    private Scanner s = new Scanner(System.in);
@@ -553,10 +605,8 @@ public class OpenGLRenderer {
          handleInput();
          
          renderScene(objects);
-         horizontalBlur();
-         verticalBlur();
          
-         //render(objects);
+//         render(objects);
          Display.sync(60);
          Display.update();
       }

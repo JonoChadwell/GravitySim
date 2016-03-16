@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Program {
-   private int pid = 0;
+   public int pid = 0;
    private String vShaderName = "";
    private String fShaderName = "";
    

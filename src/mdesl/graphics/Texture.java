@@ -67,8 +67,6 @@ import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GLContext;
 
-import de.matthiasmann.twl.utils.PNGDecoder;
-
 /** This is a minimal implementation of an OpenGL texture loader. A more complete
  * implementation would support multiple filetypes (JPEG, BMP, TGA, etc), allow
  * for parameters such as width/height to be changed (by uploading new texture
@@ -181,13 +179,13 @@ public class Texture implements ITexture {
 		InputStream input = null;
 		try {
 			input = pngRef.openStream();
-			PNGDecoder dec = new PNGDecoder(input);
-			
-			width = dec.getWidth();
-			height = dec.getHeight();
-			ByteBuffer buf = BufferUtils.createByteBuffer(4 * width * height);
-			dec.decode(buf, width * 4, PNGDecoder.Format.RGBA);
-			buf.flip();
+//			PNGDecoder dec = new PNGDecoder(input);
+//			
+//			width = dec.getWidth();
+//			height = dec.getHeight();
+//			ByteBuffer buf = BufferUtils.createByteBuffer(4 * width * height);
+//			dec.decode(buf, width * 4, PNGDecoder.Format.RGBA);
+//			buf.flip();
 			
 			glEnable(getTarget());
 			id = glGenTextures();
@@ -195,7 +193,7 @@ public class Texture implements ITexture {
 			bind();
 			setFilter(minFilter, magFilter);
 			setWrap(wrap);
-			upload(GL_RGBA, buf);
+//			upload(GL_RGBA, buf);
 			
 			//use EXT since we are targeting 2.0+
 			if (genMipmap) {

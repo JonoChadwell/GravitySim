@@ -3,6 +3,7 @@ in vec3 fragNor;
 in vec3 lightDir;
 in vec3 worldPosition;
 out vec4 color;
+//layout(location = 0) out vec4 color;
 
 uniform vec3 MatAmb;
 uniform vec3 MatDif;

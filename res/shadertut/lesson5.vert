@@ -1,5 +1,5 @@
 //combined projection and view matrix
-uniform mat4 u_projView;
+uniform mat4 MV;
 
 //"in" attributes from our SpriteBatch
 attribute vec2 Position;
@@ -13,5 +13,5 @@ varying vec2 vTexCoord;
 void main() {
 	vColor = Color;
 	vTexCoord = TexCoord;
-	gl_Position = u_projView * vec4(Position, 0.0, 1.0);
+	gl_Position = MV * vec4(Position, 0.0, 1.0);
 }
