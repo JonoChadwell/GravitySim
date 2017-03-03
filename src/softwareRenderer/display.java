@@ -34,7 +34,7 @@ public class display extends JPanel implements ActionListener {
         this.setFocusable(true);
         this.setBackground(Color.black);
         displayCamera = new Camera(new Vector(-1, 0, 0));
-        simController.addRandomRange(1500);
+        //simController.addRandomRange(1500);
         /*
         simController.sim.addObject(SolarObjects.Sol);
         SolarObjects.Sol.color = Color.white;
@@ -120,15 +120,19 @@ public class display extends JPanel implements ActionListener {
         @Override
         public void keyPressed(KeyEvent e) {
             switch (e.getKeyCode()) {
+                case 65: //a
                 case 37: //right
                     cameraSpeed.x = -scrollSpeed;
                     break;
+                case 87: //w
                 case 38: //down
                     cameraSpeed.y = -scrollSpeed;
                     break;
+                case 68: //d
                 case 39: //left
                     cameraSpeed.x = scrollSpeed;
                     break;
+                case 83: //s
                 case 40: //up
                     cameraSpeed.y = scrollSpeed;
                     break;
@@ -138,6 +142,8 @@ public class display extends JPanel implements ActionListener {
                 case 17: //out (LShift)
                     cameraSpeed.z = scrollSpeed;
                     break;
+                default:
+                    System.out.println("Unrecognized keycode: " + e.getKeyCode());
             }
         }
 
@@ -145,20 +151,18 @@ public class display extends JPanel implements ActionListener {
         public void keyReleased(KeyEvent e) {
             switch (e.getKeyCode()) {
                 case 37:
+                case 39:
+                case 65:
+                case 68:
                     cameraSpeed.x = 0;
                     break;
                 case 38:
-                    cameraSpeed.y = 0;
-                    break;
-                case 39:
-                    cameraSpeed.x = 0;
-                    break;
                 case 40:
+                case 87:
+                case 83:
                     cameraSpeed.y = 0;
                     break;
                 case 16:
-                    cameraSpeed.z = 0;
-                    break;
                 case 17:
                     cameraSpeed.z = 0;
                     break;
